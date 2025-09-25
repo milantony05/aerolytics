@@ -2,12 +2,14 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 import requests
 from metar_parser import parse_metar
+from taf_parser import parse_taf
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
 
-# AviationWeather.gov API base URL
-AVIATION_WEATHER_BASE_URL = "https://aviationweather.gov/api/data/metar"
+# AviationWeather.gov API base URLs
+AVIATION_WEATHER_METAR_URL = "https://aviationweather.gov/api/data/metar"
+AVIATION_WEATHER_TAF_URL = "https://aviationweather.gov/api/data/taf"
 
 @app.route('/api/metar/<string:airport>', methods=['GET'])
 def get_metar(airport):
@@ -33,7 +35,7 @@ def get_metar(airport):
         }
         
         # Make request to AviationWeather.gov API
-        response = requests.get(AVIATION_WEATHER_BASE_URL, params=params, timeout=10)
+        response = requests.get(AVIATION_WEATHER_METAR_URL, params=params, timeout=10)
         response.raise_for_status()
         
         # Get the raw METAR text
@@ -58,6 +60,62 @@ def get_metar(airport):
     except requests.exceptions.RequestException as e:
         return jsonify({
             'error': f'Failed to fetch METAR data: {str(e)}',
+            'airport': airport.upper()
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'error': f'Unexpected error: {str(e)}',
+            'airport': airport.upper()
+        }), 500
+
+@app.route('/api/taf/<string:airport>', methods=['GET'])
+def get_taf(airport):
+    """
+    Fetch raw TAF data for a specific airport from AviationWeather.gov
+    
+    Args:
+        airport (str): 4-letter ICAO airport code (e.g., KJFK, KLAX)
+    
+    Returns:
+        JSON response with raw TAF string and parsed data or error message
+    """
+    try:
+        # Convert airport code to uppercase
+        airport_code = airport.upper()
+        
+        # Construct API URL with parameters
+        params = {
+            'ids': airport_code,
+            'format': 'raw',
+            'hours': '30'  # Get TAF for next 30 hours
+        }
+        
+        # Make request to AviationWeather.gov API
+        response = requests.get(AVIATION_WEATHER_TAF_URL, params=params, timeout=10)
+        response.raise_for_status()
+        
+        # Get the raw TAF text
+        taf_text = response.text.strip()
+        
+        if not taf_text or taf_text == "No TAF available":
+            return jsonify({
+                'error': f'No TAF data available for airport {airport_code}',
+                'airport': airport_code
+            }), 404
+        
+        # Parse the raw TAF data
+        parsed_taf = parse_taf(taf_text)
+        
+        return jsonify({
+            'airport': airport_code,
+            'raw_taf': taf_text,
+            'parsed_taf': parsed_taf,
+            'status': 'success'
+        })
+        
+    except requests.exceptions.RequestException as e:
+        return jsonify({
+            'error': f'Failed to fetch TAF data: {str(e)}',
             'airport': airport.upper()
         }), 500
     except Exception as e:

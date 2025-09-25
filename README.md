@@ -50,8 +50,29 @@ This project follows a 12-phase development roadmap focusing on:
 
 ## API Endpoints
 
-- `GET /api/metar/{airport}` - Fetch METAR data for an airport
+- `GET /api/metar/{airport}` - Fetch and parse METAR data for an airport
+  - Returns both raw METAR string and structured parsed data
+  - Includes wind, visibility, weather, clouds, temperature, and pressure
 - More endpoints to be added in subsequent phases
+
+## Current Features (Phase 2)
+
+- ✅ **Raw METAR Fetching** - Get real-time weather data from AviationWeather.gov
+- ✅ **METAR Parsing** - Decode aviation weather codes into human-readable format
+- ✅ **Structured Data** - JSON response with clearly named fields
+- ✅ **Weather Translation** - Convert aviation codes to plain English descriptions
+- ✅ **Multiple Units** - Temperature in Celsius/Fahrenheit, pressure in inHg/millibars
+- ✅ **Error Handling** - Graceful handling of parsing errors and invalid data
+
+### Supported METAR Elements:
+- Station identifier and observation time
+- Wind direction, speed, and gusts
+- Visibility in statute miles or meters  
+- Weather phenomena (rain, snow, fog, etc.)
+- Cloud layers with heights and coverage
+- Temperature and dewpoint
+- Barometric pressure
+- Remarks section
 
 ## Technology Stack
 
