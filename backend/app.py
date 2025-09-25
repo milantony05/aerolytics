@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 import requests
+from metar_parser import parse_metar
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
@@ -44,9 +45,13 @@ def get_metar(airport):
                 'airport': airport_code
             }), 404
         
+        # Parse the raw METAR data
+        parsed_metar = parse_metar(metar_text)
+        
         return jsonify({
             'airport': airport_code,
             'raw_metar': metar_text,
+            'parsed_metar': parsed_metar,
             'status': 'success'
         })
         

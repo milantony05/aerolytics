@@ -14,7 +14,13 @@ hackspace/
 
 ## Quick Start
 
-### Backend (Flask)
+### Option 1: Use the provided batch files (Windows)
+1. **Start Backend:** Double-click `start-backend.bat` or run it from command line
+2. **Start Frontend:** Double-click `start-frontend.bat` or run it from command line
+
+### Option 2: Manual setup
+
+#### Backend (Flask)
 ```bash
 cd backend
 python -m venv venv
@@ -23,12 +29,17 @@ pip install -r requirements.txt
 python app.py
 ```
 
-### Frontend (React)
+#### Frontend (React)
 ```bash
 cd frontend
-npm install
-npm start
+npm start  # npm install already done during create-react-app
 ```
+
+### Testing the Application
+1. Start both backend (port 5000) and frontend (port 3000)
+2. Open http://localhost:3000 in your browser
+3. Enter an airport code (e.g., KJFK, KLAX, KORD) and click "Get METAR"
+4. The raw METAR data should be displayed
 
 ## Development Phases
 

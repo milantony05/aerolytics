@@ -72,11 +72,107 @@ function App() {
 
         {metarData && (
           <div className="metar-result">
-            <h3>METAR for {metarData.airport}</h3>
+            <h3>Weather Report for {metarData.airport}</h3>
+            
+            {/* Raw METAR */}
             <div className="raw-metar">
               <strong>Raw METAR:</strong>
               <pre>{metarData.raw_metar}</pre>
             </div>
+
+            {/* Parsed METAR Display */}
+            {metarData.parsed_metar && !metarData.parsed_metar.error && (
+              <div className="parsed-metar">
+                <h4>Decoded Weather Information</h4>
+                
+                {/* Basic Info */}
+                <div className="weather-section">
+                  <h5>Observation Details</h5>
+                  <p><strong>Station:</strong> {metarData.parsed_metar.station}</p>
+                  {metarData.parsed_metar.observation_time && (
+                    <p><strong>Time:</strong> {metarData.parsed_metar.observation_time.formatted}</p>
+                  )}
+                </div>
+
+                {/* Wind */}
+                {metarData.parsed_metar.wind && metarData.parsed_metar.wind.description && (
+                  <div className="weather-section">
+                    <h5>Wind</h5>
+                    <p>{metarData.parsed_metar.wind.description}</p>
+                  </div>
+                )}
+
+                {/* Visibility */}
+                {metarData.parsed_metar.visibility && metarData.parsed_metar.visibility.description && (
+                  <div className="weather-section">
+                    <h5>Visibility</h5>
+                    <p>{metarData.parsed_metar.visibility.description}</p>
+                  </div>
+                )}
+
+                {/* Weather */}
+                {metarData.parsed_metar.weather && metarData.parsed_metar.weather.length > 0 && (
+                  <div className="weather-section">
+                    <h5>Current Weather</h5>
+                    {metarData.parsed_metar.weather.map((weather, index) => (
+                      <p key={index}>{weather.description}</p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Clouds */}
+                {metarData.parsed_metar.clouds && metarData.parsed_metar.clouds.length > 0 && (
+                  <div className="weather-section">
+                    <h5>Cloud Layers</h5>
+                    {metarData.parsed_metar.clouds.map((cloud, index) => (
+                      <p key={index}>{cloud.description}</p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Temperature */}
+                {metarData.parsed_metar.temperature && metarData.parsed_metar.temperature.description && (
+                  <div className="weather-section">
+                    <h5>Temperature</h5>
+                    <p>{metarData.parsed_metar.temperature.description}</p>
+                  </div>
+                )}
+
+                {/* Pressure */}
+                {metarData.parsed_metar.pressure && metarData.parsed_metar.pressure.description && (
+                  <div className="weather-section">
+                    <h5>Barometric Pressure</h5>
+                    <p>{metarData.parsed_metar.pressure.description}</p>
+                  </div>
+                )}
+
+                {/* Remarks */}
+                {metarData.parsed_metar.remarks && (
+                  <div className="weather-section">
+                    <h5>Remarks</h5>
+                    <p>{metarData.parsed_metar.remarks}</p>
+                  </div>
+                )}
+
+                {/* Parsing Errors */}
+                {metarData.parsed_metar.parsing_errors && metarData.parsed_metar.parsing_errors.length > 0 && (
+                  <div className="weather-section parsing-errors">
+                    <h5>Parsing Notes</h5>
+                    {metarData.parsed_metar.parsing_errors.map((error, index) => (
+                      <p key={index} className="error-note">{error}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Parser Error */}
+            {metarData.parsed_metar && metarData.parsed_metar.error && (
+              <div className="parser-error">
+                <h4>Parser Error</h4>
+                <p>{metarData.parsed_metar.error}</p>
+              </div>
+            )}
           </div>
         )}
       </header>
