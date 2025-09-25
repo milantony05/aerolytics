@@ -3,13 +3,12 @@ import './App.css';
 
 function App() {
   const [airport, setAirport] = useState('');
-  const [metarData, setMetarData] = useState(null);
-  const [tafData, setTafData] = useState(null);
+  const [briefingData, setBriefingData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('current'); // 'current' or 'forecast'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'current', or 'forecast'
 
-  const fetchWeatherData = async () => {
+  const fetchWeatherBriefing = async () => {
     if (!airport.trim()) {
       setError('Please enter an airport code');
       return;
@@ -17,30 +16,19 @@ function App() {
 
     setLoading(true);
     setError(null);
-    setMetarData(null);
-    setTafData(null);
+    setBriefingData(null);
 
     try {
-      // Fetch both METAR and TAF data in parallel
-      const [metarResponse, tafResponse] = await Promise.all([
-        fetch(`http://localhost:5000/api/metar/${airport.toUpperCase()}`),
-        fetch(`http://localhost:5000/api/taf/${airport.toUpperCase()}`)
-      ]);
-
-      const metarData = await metarResponse.json();
-      const tafDataResponse = await tafResponse.json();
+      const response = await fetch(`http://localhost:5000/api/briefing/airport/${airport.toUpperCase()}`);
+      const briefing = await response.json();
       
-      if (metarResponse.ok) {
-        setMetarData(metarData);
+      if (response.ok) {
+        setBriefingData(briefing);
+        if (briefing.errors && briefing.errors.length > 0) {
+          setError(`Partial data: ${briefing.errors.join(', ')}`);
+        }
       } else {
-        setError(metarData.error || 'Failed to fetch METAR data');
-      }
-
-      if (tafResponse.ok) {
-        setTafData(tafDataResponse);
-      } else {
-        // TAF might not be available for all airports, so just log the error
-        console.warn('TAF not available:', tafDataResponse.error);
+        setError(briefing.error || 'Failed to fetch weather briefing');
       }
     } catch (err) {
       setError('Failed to connect to server. Make sure the backend is running.');
@@ -51,7 +39,33 @@ function App() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    fetchWeatherData();
+    fetchWeatherBriefing();
+  };
+
+  const getWeatherCategoryColor = (category) => {
+    switch (category) {
+      case 'Clear':
+        return '#28a745'; // Green
+      case 'Significant':
+        return '#ffc107'; // Yellow/Orange
+      case 'Severe':
+        return '#dc3545'; // Red
+      default:
+        return '#6c757d'; // Gray
+    }
+  };
+
+  const getWeatherCategoryIcon = (category) => {
+    switch (category) {
+      case 'Clear':
+        return '☀️';
+      case 'Significant':
+        return '⚠️';
+      case 'Severe':
+        return '⛈️';
+      default:
+        return '❓';
+    }
   };
 
   return (
@@ -86,185 +100,324 @@ function App() {
           </div>
         )}
 
-        {(metarData || tafData) && (
+        {briefingData && (
           <div className="weather-result">
-            <h3>Weather Report for {metarData?.airport || tafData?.airport}</h3>
+            <h3>Weather Briefing for {briefingData.airport}</h3>
+            
+            {/* Weather Classification Banner */}
+            {briefingData.weather_classification && (
+              <div 
+                className="weather-category-banner"
+                style={{
+                  backgroundColor: getWeatherCategoryColor(briefingData.weather_classification.category),
+                  color: 'white',
+                  padding: '1rem',
+                  margin: '1rem 0',
+                  borderRadius: '8px',
+                  textAlign: 'center'
+                }}
+              >
+                <div className="category-header">
+                  <span className="category-icon" style={{ fontSize: '2rem', marginRight: '0.5rem' }}>
+                    {getWeatherCategoryIcon(briefingData.weather_classification.category)}
+                  </span>
+                  <span className="category-text" style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+                    {briefingData.weather_classification.category} Conditions
+                  </span>
+                </div>
+                <div className="category-score" style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                  Confidence: {briefingData.weather_classification.confidence} | 
+                  Score: {briefingData.weather_classification.score}/12
+                </div>
+              </div>
+            )}
+
+            {/* Summary Section */}
+            {briefingData.summary && briefingData.summary.length > 0 && (
+              <div className="briefing-summary">
+                <h4>Key Information</h4>
+                <ul>
+                  {briefingData.summary.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             
             {/* Tab Navigation */}
             <div className="tab-navigation">
               <button 
+                className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
+                onClick={() => setActiveTab('overview')}
+              >
+                Overview
+              </button>
+              <button 
                 className={`tab-button ${activeTab === 'current' ? 'active' : ''}`}
                 onClick={() => setActiveTab('current')}
-                disabled={!metarData}
+                disabled={!briefingData.current_conditions}
               >
                 Current (METAR)
               </button>
-              <button 
+                            <button 
                 className={`tab-button ${activeTab === 'forecast' ? 'active' : ''}`}
                 onClick={() => setActiveTab('forecast')}
-                disabled={!tafData}
+                disabled={!briefingData.forecast}
               >
                 Forecast (TAF)
               </button>
             </div>
 
+            {/* Overview Tab */}
+            {activeTab === 'overview' && (
+              <div className="tab-content">
+                <h4>Weather Analysis Overview</h4>
+                
+                {briefingData.weather_classification && (
+                  <div className="classification-details">
+                    <h5>Weather Classification Analysis</h5>
+                    
+                    {/* Reasoning */}
+                    {briefingData.weather_classification.reasoning && briefingData.weather_classification.reasoning.length > 0 && (
+                      <div className="weather-section">
+                        <h6>Classification Reasoning</h6>
+                        <ul>
+                          {briefingData.weather_classification.reasoning.map((reason, index) => (
+                            <li key={index}>{reason}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Factor Analysis */}
+                    {briefingData.weather_classification.factors && (
+                      <div className="weather-section">
+                        <h6>Weather Factor Analysis</h6>
+                        <div className="factor-grid">
+                          {Object.entries(briefingData.weather_classification.factors).map(([factor, data]) => (
+                            <div key={factor} className="factor-item">
+                              <strong>{factor.charAt(0).toUpperCase() + factor.slice(1)}:</strong>
+                              <span className={`impact-${data.impact?.toLowerCase() || 'none'}`}>
+                                {data.impact || 'None'} Impact (Score: {data.score})
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Briefing Time */}
+                {briefingData.briefing_time && (
+                  <div className="weather-section">
+                    <h6>Data Currency</h6>
+                    <p><strong>Last Updated:</strong> {briefingData.briefing_time.formatted || briefingData.briefing_time}</p>
+                  </div>
+                )}
+
+                {/* Errors/Warnings */}
+                {briefingData.errors && briefingData.errors.length > 0 && (
+                  <div className="weather-section">
+                    <h6>Data Availability Notes</h6>
+                    <ul className="error-list">
+                      {briefingData.errors.map((error, index) => (
+                        <li key={index} className="warning-item">{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Current Weather (METAR) Tab */}
-            {activeTab === 'current' && metarData && (
+            {activeTab === 'current' && briefingData.current_conditions && (
               <div className="tab-content">
                 <h4>Current Weather Conditions</h4>
                 
                 {/* Raw METAR */}
                 <div className="raw-metar">
                   <strong>Raw METAR:</strong>
-                  <pre>{metarData.raw_metar}</pre>
+                  <pre>{briefingData.current_conditions.raw_metar}</pre>
                 </div>
 
-                {/* Parsed METAR Display */}
-                {metarData.parsed_metar && !metarData.parsed_metar.error && (
+                {/* Use same METAR display logic as before but with briefingData structure */}
+                {briefingData.current_conditions.parsed && !briefingData.current_conditions.parsed.error && (
                   <div className="parsed-metar">
                     <h5>Decoded Weather Information</h5>
                     
-                    {/* Basic Info */}
-                    <div className="weather-section">
-                      <h6>Observation Details</h6>
-                      <p><strong>Station:</strong> {metarData.parsed_metar.station}</p>
-                      {metarData.parsed_metar.observation_time && (
-                        <p><strong>Time:</strong> {metarData.parsed_metar.observation_time.formatted}</p>
-                      )}
-                    </div>
+                    {/* Time */}
+                    {briefingData.current_conditions.parsed.time && (
+                      <div className="weather-section">
+                        <h6>Observation Time</h6>
+                        <p><strong>UTC:</strong> {briefingData.current_conditions.parsed.time.formatted}</p>
+                        <p><strong>Description:</strong> {briefingData.current_conditions.parsed.time.description}</p>
+                      </div>
+                    )}
 
                     {/* Wind */}
-                    {metarData.parsed_metar.wind && metarData.parsed_metar.wind.description && (
+                    {briefingData.current_conditions.parsed.wind && (
                       <div className="weather-section">
-                        <h6>Wind</h6>
-                        <p>{metarData.parsed_metar.wind.description}</p>
+                        <h6>Wind Information</h6>
+                        <p><strong>Description:</strong> {briefingData.current_conditions.parsed.wind.description}</p>
+                        {briefingData.current_conditions.parsed.wind.direction && (
+                          <p><strong>Direction:</strong> {briefingData.current_conditions.parsed.wind.direction}°</p>
+                        )}
+                        {briefingData.current_conditions.parsed.wind.speed && (
+                          <p><strong>Speed:</strong> {briefingData.current_conditions.parsed.wind.speed} knots</p>
+                        )}
+                        {briefingData.current_conditions.parsed.wind.gust_speed && (
+                          <p><strong>Gust Speed:</strong> {briefingData.current_conditions.parsed.wind.gust_speed} knots</p>
+                        )}
+                        {briefingData.current_conditions.parsed.wind.direction_variable && (
+                          <p><strong>Variable Direction:</strong> Yes</p>
+                        )}
                       </div>
                     )}
 
                     {/* Visibility */}
-                    {metarData.parsed_metar.visibility && metarData.parsed_metar.visibility.description && (
+                    {briefingData.current_conditions.parsed.visibility && (
                       <div className="weather-section">
                         <h6>Visibility</h6>
-                        <p>{metarData.parsed_metar.visibility.description}</p>
+                        <p><strong>Description:</strong> {briefingData.current_conditions.parsed.visibility.description}</p>
+                        {briefingData.current_conditions.parsed.visibility.distance && (
+                          <p><strong>Distance:</strong> {briefingData.current_conditions.parsed.visibility.distance} {briefingData.current_conditions.parsed.visibility.unit || 'statute miles'}</p>
+                        )}
                       </div>
                     )}
 
                     {/* Weather */}
-                    {metarData.parsed_metar.weather && metarData.parsed_metar.weather.length > 0 && (
+                    {briefingData.current_conditions.parsed.weather && briefingData.current_conditions.parsed.weather.length > 0 && (
                       <div className="weather-section">
-                        <h6>Current Weather</h6>
-                        {metarData.parsed_metar.weather.map((weather, index) => (
-                          <p key={index}>{weather.description}</p>
+                        <h6>Weather Phenomena</h6>
+                        {briefingData.current_conditions.parsed.weather.map((weather, index) => (
+                          <div key={index} className="weather-phenomenon">
+                            <p><strong>Description:</strong> {weather.description}</p>
+                            {weather.intensity && (
+                              <p><strong>Intensity:</strong> {weather.intensity}</p>
+                            )}
+                            {weather.phenomena && weather.phenomena.length > 0 && (
+                              <div>
+                                <strong>Phenomena:</strong>
+                                {weather.phenomena.map((phenomenon, pIndex) => (
+                                  <p key={pIndex} style={{marginLeft: '1rem'}}>
+                                    {phenomenon.description} ({phenomenon.code})
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         ))}
                       </div>
                     )}
 
                     {/* Clouds */}
-                    {metarData.parsed_metar.clouds && metarData.parsed_metar.clouds.length > 0 && (
+                    {briefingData.current_conditions.parsed.clouds && briefingData.current_conditions.parsed.clouds.length > 0 && (
                       <div className="weather-section">
-                        <h6>Cloud Layers</h6>
-                        {metarData.parsed_metar.clouds.map((cloud, index) => (
-                          <p key={index}>{cloud.description}</p>
+                        <h6>Cloud Information</h6>
+                        {briefingData.current_conditions.parsed.clouds.map((cloud, index) => (
+                          <div key={index} className="cloud-layer">
+                            <p><strong>Description:</strong> {cloud.description}</p>
+                            {cloud.height_feet && (
+                              <p><strong>Height:</strong> {cloud.height_feet.toLocaleString()} feet AGL</p>
+                            )}
+                            {cloud.type && (
+                              <p><strong>Type:</strong> {cloud.type_description || cloud.type}</p>
+                            )}
+                          </div>
                         ))}
                       </div>
                     )}
 
-                    {/* Temperature */}
-                    {metarData.parsed_metar.temperature && metarData.parsed_metar.temperature.description && (
+                    {/* Temperature and Pressure */}
+                    {(briefingData.current_conditions.parsed.temperature || briefingData.current_conditions.parsed.pressure) && (
                       <div className="weather-section">
-                        <h6>Temperature</h6>
-                        <p>{metarData.parsed_metar.temperature.description}</p>
-                      </div>
-                    )}
-
-                    {/* Pressure */}
-                    {metarData.parsed_metar.pressure && metarData.parsed_metar.pressure.description && (
-                      <div className="weather-section">
-                        <h6>Barometric Pressure</h6>
-                        <p>{metarData.parsed_metar.pressure.description}</p>
-                      </div>
-                    )}
-
-                    {/* Remarks */}
-                    {metarData.parsed_metar.remarks && (
-                      <div className="weather-section">
-                        <h6>Remarks</h6>
-                        <p>{metarData.parsed_metar.remarks}</p>
-                      </div>
-                    )}
-
-                    {/* Parsing Errors */}
-                    {metarData.parsed_metar.parsing_errors && metarData.parsed_metar.parsing_errors.length > 0 && (
-                      <div className="weather-section parsing-errors">
-                        <h6>Parsing Notes</h6>
-                        {metarData.parsed_metar.parsing_errors.map((error, index) => (
-                          <p key={index} className="error-note">{error}</p>
-                        ))}
+                        <h6>Temperature & Pressure</h6>
+                        {briefingData.current_conditions.parsed.temperature && (
+                          <>
+                            {briefingData.current_conditions.parsed.temperature.temperature_celsius !== undefined && (
+                              <p><strong>Temperature:</strong> {briefingData.current_conditions.parsed.temperature.temperature_celsius}°C ({briefingData.current_conditions.parsed.temperature.temperature_fahrenheit}°F)</p>
+                            )}
+                            {briefingData.current_conditions.parsed.temperature.dewpoint_celsius !== undefined && (
+                              <p><strong>Dew Point:</strong> {briefingData.current_conditions.parsed.temperature.dewpoint_celsius}°C ({briefingData.current_conditions.parsed.temperature.dewpoint_fahrenheit}°F)</p>
+                            )}
+                          </>
+                        )}
+                        {briefingData.current_conditions.parsed.pressure && (
+                          <>
+                            {briefingData.current_conditions.parsed.pressure.altimeter_inhg && (
+                              <p><strong>Altimeter:</strong> {briefingData.current_conditions.parsed.pressure.altimeter_inhg} inHg</p>
+                            )}
+                            {briefingData.current_conditions.parsed.pressure.altimeter_hpa && (
+                              <p><strong>Pressure:</strong> {briefingData.current_conditions.parsed.pressure.altimeter_hpa} hPa</p>
+                            )}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Parser Error */}
-                {metarData.parsed_metar && metarData.parsed_metar.error && (
+                {/* METAR Parser Error */}
+                {briefingData.current_conditions.parsed && briefingData.current_conditions.parsed.error && (
                   <div className="parser-error">
                     <h5>Parser Error</h5>
-                    <p>{metarData.parsed_metar.error}</p>
+                    <p>{briefingData.current_conditions.parsed.error}</p>
                   </div>
                 )}
               </div>
             )}
 
             {/* Forecast Weather (TAF) Tab */}
-            {activeTab === 'forecast' && tafData && (
+            {activeTab === 'forecast' && briefingData.forecast && (
               <div className="tab-content">
                 <h4>Weather Forecast</h4>
                 
                 {/* Raw TAF */}
                 <div className="raw-metar">
                   <strong>Raw TAF:</strong>
-                  <pre>{tafData.raw_taf}</pre>
+                  <pre>{briefingData.forecast.raw_taf}</pre>
                 </div>
 
-                {/* Parsed TAF Display */}
-                {tafData.parsed_taf && !tafData.parsed_taf.error && (
+                {/* Use same TAF display logic as before but with briefingData structure */}
+                {briefingData.forecast.parsed && !briefingData.forecast.parsed.error && (
                   <div className="parsed-metar">
                     <h5>Decoded Forecast Information</h5>
                     
                     {/* Header Info */}
                     <div className="weather-section">
                       <h6>Forecast Details</h6>
-                      <p><strong>Station:</strong> {tafData.parsed_taf.station}</p>
-                      {tafData.parsed_taf.issue_time && (
-                        <p><strong>Issued:</strong> {tafData.parsed_taf.issue_time.formatted}</p>
+                      <p><strong>Station:</strong> {briefingData.forecast.parsed.station}</p>
+                      {briefingData.forecast.parsed.issue_time && (
+                        <p><strong>Issued:</strong> {briefingData.forecast.parsed.issue_time.formatted}</p>
                       )}
-                      {tafData.parsed_taf.valid_period && (
-                        <p><strong>Valid Period:</strong> {tafData.parsed_taf.valid_period.description}</p>
+                      {briefingData.forecast.parsed.valid_period && (
+                        <p><strong>Valid Period:</strong> {briefingData.forecast.parsed.valid_period.description}</p>
                       )}
                     </div>
 
                     {/* Base Forecast */}
-                    {tafData.parsed_taf.base_forecast && (
+                    {briefingData.forecast.parsed.base_forecast && (
                       <div className="weather-section">
                         <h6>Base Forecast</h6>
-                        {tafData.parsed_taf.base_forecast.wind && tafData.parsed_taf.base_forecast.wind.description && (
-                          <p><strong>Wind:</strong> {tafData.parsed_taf.base_forecast.wind.description}</p>
+                        {briefingData.forecast.parsed.base_forecast.wind && briefingData.forecast.parsed.base_forecast.wind.description && (
+                          <p><strong>Wind:</strong> {briefingData.forecast.parsed.base_forecast.wind.description}</p>
                         )}
-                        {tafData.parsed_taf.base_forecast.visibility && tafData.parsed_taf.base_forecast.visibility.description && (
-                          <p><strong>Visibility:</strong> {tafData.parsed_taf.base_forecast.visibility.description}</p>
+                        {briefingData.forecast.parsed.base_forecast.visibility && briefingData.forecast.parsed.base_forecast.visibility.description && (
+                          <p><strong>Visibility:</strong> {briefingData.forecast.parsed.base_forecast.visibility.description}</p>
                         )}
-                        {tafData.parsed_taf.base_forecast.weather && tafData.parsed_taf.base_forecast.weather.length > 0 && (
+                        {briefingData.forecast.parsed.base_forecast.weather && briefingData.forecast.parsed.base_forecast.weather.length > 0 && (
                           <div>
                             <strong>Weather:</strong>
-                            {tafData.parsed_taf.base_forecast.weather.map((weather, index) => (
+                            {briefingData.forecast.parsed.base_forecast.weather.map((weather, index) => (
                               <p key={index} style={{marginLeft: '1rem'}}>{weather.description}</p>
                             ))}
                           </div>
                         )}
-                        {tafData.parsed_taf.base_forecast.clouds && tafData.parsed_taf.base_forecast.clouds.length > 0 && (
+                        {briefingData.forecast.parsed.base_forecast.clouds && briefingData.forecast.parsed.base_forecast.clouds.length > 0 && (
                           <div>
                             <strong>Clouds:</strong>
-                            {tafData.parsed_taf.base_forecast.clouds.map((cloud, index) => (
+                            {briefingData.forecast.parsed.base_forecast.clouds.map((cloud, index) => (
                               <p key={index} style={{marginLeft: '1rem'}}>{cloud.description}</p>
                             ))}
                           </div>
@@ -273,10 +426,10 @@ function App() {
                     )}
 
                     {/* Change Groups */}
-                    {tafData.parsed_taf.change_groups && tafData.parsed_taf.change_groups.length > 0 && (
+                    {briefingData.forecast.parsed.change_groups && briefingData.forecast.parsed.change_groups.length > 0 && (
                       <div className="weather-section">
                         <h6>Forecast Changes</h6>
-                        {tafData.parsed_taf.change_groups.map((group, index) => (
+                        {briefingData.forecast.parsed.change_groups.map((group, index) => (
                           <div key={index} className="change-group">
                             <h6 className="change-header">
                               {group.type} 
@@ -317,10 +470,10 @@ function App() {
                 )}
 
                 {/* TAF Parser Error */}
-                {tafData.parsed_taf && tafData.parsed_taf.error && (
+                {briefingData.forecast.parsed && briefingData.forecast.parsed.error && (
                   <div className="parser-error">
                     <h5>Parser Error</h5>
-                    <p>{tafData.parsed_taf.error}</p>
+                    <p>{briefingData.forecast.parsed.error}</p>
                   </div>
                 )}
               </div>

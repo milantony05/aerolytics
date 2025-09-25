@@ -53,12 +53,18 @@ This project follows a 12-phase development roadmap focusing on:
 - `GET /api/metar/{airport}` - Fetch and parse METAR data for an airport
   - Returns both raw METAR string and structured parsed data
   - Includes wind, visibility, weather, clouds, temperature, and pressure
+- `GET /api/taf/{airport}` - Fetch and parse TAF forecast data for an airport
+  - Returns both raw TAF string and structured parsed forecast data
+  - Includes base forecast and change groups (FM, TEMPO, BECMG, PROB)
 - More endpoints to be added in subsequent phases
 
-## Current Features (Phase 2)
+## Current Features (Phase 3)
 
-- ✅ **Raw METAR Fetching** - Get real-time weather data from AviationWeather.gov
+- ✅ **Current Weather (METAR)** - Real-time weather observations
+- ✅ **Weather Forecasts (TAF)** - Terminal Aerodrome Forecasts up to 30 hours
+- ✅ **Tabbed Interface** - Switch between current conditions and forecasts
 - ✅ **METAR Parsing** - Decode aviation weather codes into human-readable format
+- ✅ **TAF Parsing** - Decode forecast data including change groups
 - ✅ **Structured Data** - JSON response with clearly named fields
 - ✅ **Weather Translation** - Convert aviation codes to plain English descriptions
 - ✅ **Multiple Units** - Temperature in Celsius/Fahrenheit, pressure in inHg/millibars
@@ -73,6 +79,14 @@ This project follows a 12-phase development roadmap focusing on:
 - Temperature and dewpoint
 - Barometric pressure
 - Remarks section
+
+### Supported TAF Elements:
+- Station identifier, issue time, and valid period
+- Base forecast conditions
+- Change groups: FM (From), TEMPO (Temporary), BECMG (Becoming)
+- Probability forecasts: PROB30, PROB40
+- Wind, visibility, weather, and cloud forecasts
+- Time period specifications for all change groups
 
 ## Technology Stack
 

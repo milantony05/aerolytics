@@ -3,6 +3,7 @@ from flask_cors import CORS
 import requests
 from metar_parser import parse_metar
 from taf_parser import parse_taf
+from weather_classifier import classify_weather
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
@@ -122,6 +123,150 @@ def get_taf(airport):
         return jsonify({
             'error': f'Unexpected error: {str(e)}',
             'airport': airport.upper()
+        }), 500
+
+@app.route('/api/briefing/airport/<string:airport>', methods=['GET'])
+def get_airport_briefing(airport):
+    """
+    Comprehensive airport weather briefing combining METAR, TAF, and weather classification
+    
+    Args:
+        airport (str): 4-letter ICAO airport code (e.g., KJFK, KLAX)
+    
+    Returns:
+        JSON response with complete weather briefing including:
+        - Current conditions (METAR)
+        - Forecast (TAF)
+        - Weather classification (Clear/Significant/Severe)
+        - Unified briefing summary
+    """
+    try:
+        airport_code = airport.upper()
+        briefing = {
+            'airport': airport_code,
+            'briefing_time': None,
+            'current_conditions': None,
+            'forecast': None,
+            'weather_classification': None,
+            'status': 'success',
+            'errors': []
+        }
+        
+        # Fetch METAR data
+        try:
+            params = {
+                'ids': airport_code,
+                'format': 'raw',
+                'taf': 'false',
+                'hours': '3'
+            }
+            response = requests.get(AVIATION_WEATHER_METAR_URL, params=params, timeout=10)
+            response.raise_for_status()
+            
+            metar_text = response.text.strip()
+            if metar_text and metar_text != "No METAR available":
+                parsed_metar = parse_metar(metar_text)
+                briefing['current_conditions'] = {
+                    'raw_metar': metar_text,
+                    'parsed': parsed_metar
+                }
+                # Set briefing time from METAR if available
+                if 'time' in parsed_metar:
+                    briefing['briefing_time'] = parsed_metar['time']
+            else:
+                briefing['errors'].append(f'No current METAR data available for {airport_code}')
+                
+        except Exception as e:
+            briefing['errors'].append(f'Failed to fetch METAR: {str(e)}')
+        
+        # Fetch TAF data
+        try:
+            params = {
+                'ids': airport_code,
+                'format': 'raw',
+                'hours': '30'
+            }
+            response = requests.get(AVIATION_WEATHER_TAF_URL, params=params, timeout=10)
+            response.raise_for_status()
+            
+            taf_text = response.text.strip()
+            if taf_text and taf_text != "No TAF available":
+                parsed_taf = parse_taf(taf_text)
+                briefing['forecast'] = {
+                    'raw_taf': taf_text,
+                    'parsed': parsed_taf
+                }
+            else:
+                briefing['errors'].append(f'No TAF forecast data available for {airport_code}')
+                
+        except Exception as e:
+            briefing['errors'].append(f'Failed to fetch TAF: {str(e)}')
+        
+        # Classify weather conditions
+        try:
+            if briefing['current_conditions']:
+                parsed_metar = briefing['current_conditions']['parsed']
+                parsed_taf = briefing['forecast']['parsed'] if briefing['forecast'] else None
+                
+                weather_classification = classify_weather(parsed_metar, parsed_taf)
+                briefing['weather_classification'] = weather_classification
+            else:
+                briefing['weather_classification'] = {
+                    'category': 'Unknown',
+                    'score': 0,
+                    'confidence': 'Low',
+                    'reasoning': ['No current weather data available for classification'],
+                    'factors': {}
+                }
+        except Exception as e:
+            briefing['errors'].append(f'Failed to classify weather: {str(e)}')
+            briefing['weather_classification'] = {
+                'category': 'Unknown',
+                'score': 0,
+                'confidence': 'Low',
+                'reasoning': [f'Classification error: {str(e)}'],
+                'factors': {}
+            }
+        
+        # Generate briefing summary
+        summary = []
+        if briefing['weather_classification']:
+            category = briefing['weather_classification']['category']
+            summary.append(f"Weather Category: {category}")
+            
+            if briefing['weather_classification']['reasoning']:
+                summary.extend(briefing['weather_classification']['reasoning'][:3])  # Top 3 reasons
+        
+        if briefing['current_conditions'] and briefing['current_conditions']['parsed']:
+            metar = briefing['current_conditions']['parsed']
+            if 'wind' in metar and metar['wind'].get('speed'):
+                wind_speed = metar['wind']['speed']
+                wind_dir = metar['wind'].get('direction', 'VRB')
+                summary.append(f"Wind: {wind_dir}° at {wind_speed} knots")
+                
+            if 'visibility' in metar:
+                vis = metar['visibility']
+                if 'distance' in vis:
+                    unit = vis.get('unit', 'statute_miles')
+                    unit_abbr = 'SM' if unit == 'statute_miles' else 'm'
+                    summary.append(f"Visibility: {vis['distance']} {unit_abbr}")
+        
+        briefing['summary'] = summary
+        
+        # Determine overall status
+        if briefing['errors']:
+            if not briefing['current_conditions'] and not briefing['forecast']:
+                return jsonify(briefing), 404
+            else:
+                briefing['status'] = 'partial'  # Some data available despite errors
+                
+        return jsonify(briefing)
+        
+    except Exception as e:
+        return jsonify({
+            'error': f'Unexpected error during briefing generation: {str(e)}',
+            'airport': airport.upper(),
+            'status': 'error'
         }), 500
 
 @app.route('/health', methods=['GET'])
