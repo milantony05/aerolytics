@@ -71,59 +71,70 @@ This project is divided into three main parts, broken down into 12 distinct phas
         2.  **Backend:** Refactor to a single, unified `GET /api/briefing/airport/{airport}` endpoint that returns a consolidated JSON object containing METAR, TAF, and the classification.
         3.  **Frontend:** Update the UI to use the new unified endpoint and display the weather category prominently.
 
-### Part 2: Integrating Pilot and Airspace Data (Phases 5-8)
-*Goal: Expand the briefing to include real-time pilot reports and critical airspace notices.*
+### Part 2: Integrating Pilot and Airspace Data (Phases 5-9)
+*Goal: Expand the briefing to include real-time pilot reports, official warnings, and critical airspace notices.*
 
 * **Phase 5: PIREP (Pilot Reports) Integration**
     * **Goal:** Incorporate real-time, in-flight observations into the briefing package.
     * **Tasks:**
-        1.  **Backend:** Write a function to fetch PIREPs and add the data to the consolidated API response.
-        2.  **Frontend:** Create a new 'Pilot Reports' section in the UI to display the PIREPs in a clean, readable format.
+        1.  **Backend:** Write a function to fetch PIREPs for a given area.
+        2.  **Backend:** Add the fetched PIREP data to the consolidated response from the `/api/briefing/airport/{airport}` endpoint.
+        3.  **Frontend:** Create a "Pilot Reports" section in the UI to display PIREPs in a readable list.
 
-* **Phase 6: Raw NOTAM Integration**
+* **Phase 6: SIGMET (Significant Weather) Integration**
+    * **Goal:** Incorporate critical, en-route hazardous weather advisories into the briefing.
+    * **Tasks:**
+        1.  **Backend:** Write a function to fetch active SIGMETs from the API.
+        2.  **Backend:** Parse SIGMET data to extract key details: phenomenon (e.g., severe turbulence), affected area, altitude, and valid time.
+        3.  **Backend:** Integrate the parsed SIGMET information into the airport and route briefing responses.
+        4.  **Frontend:** Create a new, high-visibility "Advisories" component. Use prominent styling (e.g., warning colors) to draw immediate attention to active SIGMETs.
+
+* **Phase 7: Raw NOTAM Integration**
     * **Goal:** Fetch and display critical airspace and airport facility notices.
     * **Tasks:**
-        1.  **Backend:** Write a function to fetch relevant NOTAMs for an airport and add the raw text array to the API response.
-        2.  **Frontend:** Add a 'NOTAMs' tab to the UI to display the raw list.
+        1.  **Backend:** Write a function to fetch relevant NOTAMs for a specific airport.
+        2.  **Backend:** Add the raw NOTAM text array to the unified endpoint's response.
+        3.  **Frontend:** Add a "NOTAMs" tab to the UI and display the raw list of NOTAMs.
 
-* **Phase 7: NLP for NOTAM Summarization**
-    * **Goal:** Enhance the usability of NOTAMs by extracting key information.
+* **Phase 8: NLP for NOTAM Summarization**
+    * **Goal:** Make NOTAMs more scannable by extracting key information.
     * **Tasks:**
-        1.  **Backend:** Use a simple text-processing approach to identify keywords (e.g., 'RWY CLOSED', 'U/S') and categorize each NOTAM.
-        2.  **Backend:** Update the API to return a list of NOTAM objects, each containing the raw text and a new category/summary field.
-        3.  **Frontend:** Update the NOTAMs display to show the category for each notice.
+        1.  **Backend:** Implement a simple text-processing function to identify keywords in NOTAMs (e.g., 'RWY CLOSED', 'OBSTRUCTION', 'U/S') and generate a simple category or summary.
+        2.  **Backend:** Update the API to return a list of NOTAM objects, each with the raw text and a `summary` field.
+        3.  **Frontend:** Enhance the NOTAMs display to show the summary for each notice.
 
-* **Phase 8: Flight Route Briefing Endpoint**
-    * **Goal:** Implement the core 'Flight Plan Summary' feature.
+* **Phase 9: Flight Route Briefing Endpoint**
+    * **Goal:** Implement the "Flight Plan Summary" feature.
     * **Tasks:**
-        1.  **Backend:** Create a `POST /api/briefing/route` endpoint that accepts departure and arrival airports.
-        2.  **Backend:** The service should call the existing airport briefing logic for the departure and destination airports.
-        3.  **Frontend:** Create a 'Route Briefing' page for a user to input two airports and see the consolidated briefings.
+        1.  **Backend:** Create a `POST /api/briefing/route` endpoint that accepts a JSON object with `departure` and `arrival` airport codes.
+        2.  **Backend:** The endpoint logic should call the existing `/api/briefing/<airport_code>` logic for both airports.
+        3.  **Frontend:** Create a "Route Briefing" page where a user can input two airports and view the consolidated briefings for the route.
 
-### Part 3: Advanced Features and Final Polish (Phases 9-12)
+### Part 3: Advanced Features and Final Polish (Phases 10-13)
 *Goal: Enhance the user experience with visualization, refined logic, and a polished interface.*
 
-* **Phase 9: Geospatial Route Visualization**
-    * **Goal:** Provide a graphical, map-based overview of the flight route and weather.
+* **Phase 10: Geospatial Route Visualization**
+    * **Goal:** Provide a map-based overview of the flight route and weather.
     * **Tasks:**
-        1.  **Backend:** Ensure airport coordinates are included in the API response.
-        2.  **Frontend:** Integrate a mapping library (e.g., Leaflet) to draw the flight path and place color-coded markers for weather severity at each airport.
+        1.  **Backend:** Ensure that airport coordinates are included in the API response.
+        2.  **Frontend:** On the Route Briefing page, integrate a mapping library (e.g., Leaflet) to draw a line representing the flight path.
+        3.  **Frontend:** Place color-coded markers on the map for each airport, representing the weather severity.
 
-* **Phase 10: Advanced Risk Assessment Model**
-    * **Goal:** Evolve the simple categorization into a more granular numerical risk score.
+* **Phase 11: Advanced Risk Assessment Model**
+    * **Goal:** Evolve the categorization into a more granular numerical risk score.
     * **Tasks:**
-        1.  **Backend:** Refactor the 'Weather Classifier' into a 'Risk Scoring Engine' that assigns weighted points for adverse conditions to output a numerical score.
-        2.  **Frontend:** Display the numerical risk score prominently in the UI.
+        1.  **Backend:** Refactor the "Weather Classifier" into a "Risk Scoring Engine." Assign weighted points for adverse conditions (e.g., low visibility, high winds) to produce a numerical score.
+        2.  **Backend:** Include the `risk_score` in the API response.
+        3.  **Frontend:** Display the risk score prominently in the UI.
 
-* **Phase 11: UI/UX Refinement and Robustness**
-    * **Goal:** Ensure the application is stable, professional, and provides a polished user experience.
+* **Phase 12: UI/UX Refinement & Error Handling**
+    * **Goal:** Ensure the application is stable, professional, and user-friendly.
     * **Tasks:**
-        1.  **Frontend:** Conduct a full UI/UX review, add loading indicators, smooth transitions, and ensure responsive design.
-        2.  **Backend:** Implement comprehensive error handling for all endpoints, returning clear error messages.
+        1.  **Frontend:** Conduct a full UI review. Add loading indicators, ensure the layout is responsive, and refine the design.
+        2.  **Backend:** Implement comprehensive error handling for all endpoints to manage invalid inputs and external API failures gracefully.
 
-* **Phase 12: Presentation and Demonstration Preparation**
-    * **Goal:** Prepare a winning pitch and a flawless live demonstration of the application.
+* **Phase 13: Final Review and Documentation**
+    * **Goal:** Prepare for project completion.
     * **Tasks:**
-        1.  Create presentation slides articulating the problem, solution, architecture, and benefits.
-        2.  Rehearse the presentation and live demo flow.
-        3.  Finalize the project's README and ensure the codebase is clean and well-commented.
+        1.  **Code:** Add comments to clarify complex sections of the code.
+        2.  **Documentation:** Review and finalize this README, ensuring it accurately reflects the final project.

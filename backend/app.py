@@ -4,6 +4,7 @@ import requests
 from metar_parser import parse_metar
 from taf_parser import parse_taf
 from weather_classifier import classify_weather
+from pirep_parser import fetch_and_parse_pireps
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
@@ -202,6 +203,41 @@ def get_airport_briefing(airport):
         except Exception as e:
             briefing['errors'].append(f'Failed to fetch TAF: {str(e)}')
         
+        # Fetch PIREP data
+        try:
+            pireps, pirep_summary = fetch_and_parse_pireps(airport_code, radius_nm=100)
+            
+            # Filter out error entries for the main data
+            valid_pireps = [p for p in pireps if not p.get('error')]
+            error_pireps = [p for p in pireps if p.get('error')]
+            
+            briefing['pilot_reports'] = {
+                'reports': valid_pireps,
+                'summary': pirep_summary,
+                'count': len(valid_pireps)
+            }
+            
+            # Add any PIREP errors to the main error list
+            for error_pirep in error_pireps:
+                if 'error' in error_pirep:
+                    briefing['errors'].append(f"PIREP: {error_pirep['error']}")
+                    
+        except Exception as e:
+            briefing['errors'].append(f'Failed to fetch PIREPs: {str(e)}')
+            briefing['pilot_reports'] = {
+                'reports': [],
+                'summary': {
+                    'urgent_reports': [],
+                    'routine_reports': [],
+                    'total_count': 0,
+                    'has_turbulence': False,
+                    'has_icing': False,
+                    'has_weather': False,
+                    'summary': ['Error fetching pilot reports']
+                },
+                'count': 0
+            }
+        
         # Classify weather conditions
         try:
             if briefing['current_conditions']:
@@ -250,6 +286,12 @@ def get_airport_briefing(airport):
                     unit = vis.get('unit', 'statute_miles')
                     unit_abbr = 'SM' if unit == 'statute_miles' else 'm'
                     summary.append(f"Visibility: {vis['distance']} {unit_abbr}")
+        
+        # Add PIREP summary information
+        if briefing['pilot_reports'] and briefing['pilot_reports']['summary']:
+            pirep_summary = briefing['pilot_reports']['summary']
+            if pirep_summary['summary']:
+                summary.extend(pirep_summary['summary'][:2])  # Add top 2 PIREP summary items
         
         briefing['summary'] = summary
         

@@ -166,6 +166,13 @@ function App() {
               >
                 Forecast (TAF)
               </button>
+              <button 
+                className={`tab-button ${activeTab === 'pireps' ? 'active' : ''}`}
+                onClick={() => setActiveTab('pireps')}
+                disabled={!briefingData.pilot_reports || briefingData.pilot_reports.count === 0}
+              >
+                Pilot Reports ({briefingData.pilot_reports ? briefingData.pilot_reports.count : 0})
+              </button>
             </div>
 
             {/* Overview Tab */}
@@ -474,6 +481,227 @@ function App() {
                   <div className="parser-error">
                     <h5>Parser Error</h5>
                     <p>{briefingData.forecast.parsed.error}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Pilot Reports (PIREP) Tab */}
+            {activeTab === 'pireps' && briefingData.pilot_reports && (
+              <div className="tab-content">
+                <h4>Pilot Reports (PIREPs)</h4>
+                
+                {/* PIREP Summary */}
+                {briefingData.pilot_reports.summary && (
+                  <div className="pirep-summary">
+                    <h5>Summary</h5>
+                    <div className="summary-stats">
+                      <div className="stat-item">
+                        <strong>Total Reports:</strong> {briefingData.pilot_reports.count}
+                      </div>
+                      {briefingData.pilot_reports.summary.urgent_reports.length > 0 && (
+                        <div className="stat-item urgent">
+                          <strong>Urgent Reports:</strong> {briefingData.pilot_reports.summary.urgent_reports.length}
+                        </div>
+                      )}
+                      {briefingData.pilot_reports.summary.routine_reports.length > 0 && (
+                        <div className="stat-item">
+                          <strong>Routine Reports:</strong> {briefingData.pilot_reports.summary.routine_reports.length}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Condition Indicators */}
+                    <div className="condition-indicators">
+                      {briefingData.pilot_reports.summary.has_turbulence && (
+                        <span className="condition-badge turbulence">🌪️ Turbulence Reported</span>
+                      )}
+                      {briefingData.pilot_reports.summary.has_icing && (
+                        <span className="condition-badge icing">🧊 Icing Reported</span>
+                      )}
+                      {briefingData.pilot_reports.summary.has_weather && (
+                        <span className="condition-badge weather">🌦️ Weather Reported</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Urgent PIREPs */}
+                {briefingData.pilot_reports.summary && briefingData.pilot_reports.summary.urgent_reports.length > 0 && (
+                  <div className="pirep-section urgent-section">
+                    <h5>⚠️ Urgent Reports</h5>
+                    {briefingData.pilot_reports.summary.urgent_reports.map((pirep, index) => (
+                      <div key={index} className="pirep-item urgent">
+                        <div className="pirep-header">
+                          <span className="pirep-urgency">URGENT</span>
+                          {pirep.timestamp && <span className="pirep-time">{pirep.timestamp}</span>}
+                          {pirep.location && <span className="pirep-location">📍 {pirep.location}</span>}
+                        </div>
+                        
+                        {pirep.aircraft_type && (
+                          <div className="pirep-detail">
+                            <strong>Aircraft:</strong> {pirep.aircraft_type}
+                          </div>
+                        )}
+                        
+                        {pirep.altitude && (
+                          <div className="pirep-detail">
+                            <strong>Altitude:</strong> {pirep.altitude}
+                          </div>
+                        )}
+
+                        {/* Conditions */}
+                        {pirep.conditions && (
+                          <div className="pirep-conditions">
+                            {pirep.conditions.turbulence && (
+                              <div className="condition-detail">
+                                <strong>Turbulence:</strong> {
+                                  typeof pirep.conditions.turbulence === 'object' 
+                                    ? `${pirep.conditions.turbulence.severity} ${pirep.conditions.turbulence.altitude_range ? `(${pirep.conditions.turbulence.altitude_range})` : ''}`
+                                    : pirep.conditions.turbulence
+                                }
+                              </div>
+                            )}
+                            {pirep.conditions.icing && (
+                              <div className="condition-detail">
+                                <strong>Icing:</strong> {
+                                  typeof pirep.conditions.icing === 'object'
+                                    ? `${pirep.conditions.icing.severity} ${pirep.conditions.icing.altitude_range ? `(${pirep.conditions.icing.altitude_range})` : ''}`
+                                    : pirep.conditions.icing
+                                }
+                              </div>
+                            )}
+                            {pirep.conditions.wind && (
+                              <div className="condition-detail">
+                                <strong>Wind:</strong> {pirep.conditions.wind}
+                              </div>
+                            )}
+                            {pirep.conditions.visibility && (
+                              <div className="condition-detail">
+                                <strong>Visibility:</strong> {pirep.conditions.visibility}
+                              </div>
+                            )}
+                            {pirep.conditions.sky_conditions && (
+                              <div className="condition-detail">
+                                <strong>Sky:</strong> {pirep.conditions.sky_conditions}
+                              </div>
+                            )}
+                            {pirep.conditions.temperature && (
+                              <div className="condition-detail">
+                                <strong>Temperature:</strong> {pirep.conditions.temperature}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {pirep.remarks && (
+                          <div className="pirep-remarks">
+                            <strong>Remarks:</strong> {pirep.remarks}
+                          </div>
+                        )}
+
+                        {/* Raw PIREP for reference */}
+                        {pirep.raw_pirep && (
+                          <details className="raw-pirep-details">
+                            <summary>Raw PIREP</summary>
+                            <pre>{pirep.raw_pirep}</pre>
+                          </details>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Routine PIREPs */}
+                {briefingData.pilot_reports.summary && briefingData.pilot_reports.summary.routine_reports.length > 0 && (
+                  <div className="pirep-section routine-section">
+                    <h5>📋 Routine Reports</h5>
+                    {briefingData.pilot_reports.summary.routine_reports.map((pirep, index) => (
+                      <div key={index} className="pirep-item routine">
+                        <div className="pirep-header">
+                          <span className="pirep-urgency">ROUTINE</span>
+                          {pirep.timestamp && <span className="pirep-time">{pirep.timestamp}</span>}
+                          {pirep.location && <span className="pirep-location">📍 {pirep.location}</span>}
+                        </div>
+                        
+                        {pirep.aircraft_type && (
+                          <div className="pirep-detail">
+                            <strong>Aircraft:</strong> {pirep.aircraft_type}
+                          </div>
+                        )}
+                        
+                        {pirep.altitude && (
+                          <div className="pirep-detail">
+                            <strong>Altitude:</strong> {pirep.altitude}
+                          </div>
+                        )}
+
+                        {/* Conditions */}
+                        {pirep.conditions && (
+                          <div className="pirep-conditions">
+                            {pirep.conditions.turbulence && (
+                              <div className="condition-detail">
+                                <strong>Turbulence:</strong> {
+                                  typeof pirep.conditions.turbulence === 'object'
+                                    ? `${pirep.conditions.turbulence.severity} ${pirep.conditions.turbulence.altitude_range ? `(${pirep.conditions.turbulence.altitude_range})` : ''}`
+                                    : pirep.conditions.turbulence
+                                }
+                              </div>
+                            )}
+                            {pirep.conditions.icing && (
+                              <div className="condition-detail">
+                                <strong>Icing:</strong> {
+                                  typeof pirep.conditions.icing === 'object'
+                                    ? `${pirep.conditions.icing.severity} ${pirep.conditions.icing.altitude_range ? `(${pirep.conditions.icing.altitude_range})` : ''}`
+                                    : pirep.conditions.icing
+                                }
+                              </div>
+                            )}
+                            {pirep.conditions.wind && (
+                              <div className="condition-detail">
+                                <strong>Wind:</strong> {pirep.conditions.wind}
+                              </div>
+                            )}
+                            {pirep.conditions.visibility && (
+                              <div className="condition-detail">
+                                <strong>Visibility:</strong> {pirep.conditions.visibility}
+                              </div>
+                            )}
+                            {pirep.conditions.sky_conditions && (
+                              <div className="condition-detail">
+                                <strong>Sky:</strong> {pirep.conditions.sky_conditions}
+                              </div>
+                            )}
+                            {pirep.conditions.temperature && (
+                              <div className="condition-detail">
+                                <strong>Temperature:</strong> {pirep.conditions.temperature}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {pirep.remarks && (
+                          <div className="pirep-remarks">
+                            <strong>Remarks:</strong> {pirep.remarks}
+                          </div>
+                        )}
+
+                        {/* Raw PIREP for reference */}
+                        {pirep.raw_pirep && (
+                          <details className="raw-pirep-details">
+                            <summary>Raw PIREP</summary>
+                            <pre>{pirep.raw_pirep}</pre>
+                          </details>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* No PIREPs Message */}
+                {briefingData.pilot_reports.count === 0 && (
+                  <div className="no-pireps">
+                    <p>No pilot reports available for this area at this time.</p>
                   </div>
                 )}
               </div>

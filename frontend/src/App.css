@@ -403,3 +403,187 @@
   border-bottom: 1px solid rgba(251, 191, 36, 0.3);
   padding-bottom: 0.25rem;
 }
+
+/* PIREP Styles */
+.pirep-summary {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  background-color: rgba(96, 165, 250, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  color: #e2e8f0;
+}
+
+.stat-item.urgent {
+  background-color: rgba(220, 38, 38, 0.3);
+  color: #fed7d7;
+}
+
+.condition-indicators {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.condition-badge {
+  background-color: rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.condition-badge.turbulence {
+  background-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.condition-badge.icing {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+.condition-badge.weather {
+  background-color: rgba(34, 197, 94, 0.3);
+  color: #86efac;
+}
+
+.pirep-section {
+  margin-bottom: 2rem;
+}
+
+.urgent-section h5 {
+  color: #fca5a5;
+  border-left: 4px solid #dc2626;
+  padding-left: 0.75rem;
+}
+
+.routine-section h5 {
+  color: #93c5fd;
+  border-left: 4px solid #3b82f6;
+  padding-left: 0.75rem;
+}
+
+.pirep-item {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid #3b82f6;
+}
+
+.pirep-item.urgent {
+  border-left-color: #dc2626;
+  background-color: rgba(220, 38, 38, 0.1);
+}
+
+.pirep-header {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pirep-urgency {
+  background-color: #3b82f6;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.pirep-item.urgent .pirep-urgency {
+  background-color: #dc2626;
+}
+
+.pirep-time {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.pirep-location {
+  color: #60a5fa;
+  font-size: 0.85rem;
+}
+
+.pirep-detail {
+  margin-bottom: 0.5rem;
+  color: #e2e8f0;
+}
+
+.pirep-conditions {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.condition-detail {
+  margin-bottom: 0.5rem;
+  color: #cbd5e1;
+}
+
+.condition-detail:last-child {
+  margin-bottom: 0;
+}
+
+.pirep-remarks {
+  background-color: rgba(251, 191, 36, 0.1);
+  border-left: 3px solid #fbbf24;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  border-radius: 0 6px 6px 0;
+  color: #fef3c7;
+}
+
+.raw-pirep-details {
+  margin-top: 1rem;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.raw-pirep-details summary {
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.raw-pirep-details summary:hover {
+  color: #cbd5e1;
+}
+
+.raw-pirep-details pre {
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin: 0.5rem 0 0 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.no-pireps {
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 2rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
