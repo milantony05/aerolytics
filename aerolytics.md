@@ -1,4 +1,4 @@
-# Aerolytics: The Pilot's Weather Co-Pilot
+# Aerolytics: The Weather Co-Pilot
 
 ## 1. Problem Statement
 

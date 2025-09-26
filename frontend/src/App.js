@@ -44,12 +44,20 @@ const styles = {
   }
 };
 
-// Custom airplane icon using SVG
-const airplaneIcon = new L.DivIcon({
-  html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="36px" height="36px" style="transform: rotate(90deg); filter: drop-shadow(0 0 3px black);">
+// Custom departure airport icon (green airplane)
+const departureIcon = new L.DivIcon({
+  html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#4caf50" width="32px" height="32px" style="filter: drop-shadow(0 0 3px black);">
     <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
   </svg>`,
-  className: '', iconSize: [36, 36], iconAnchor: [18, 18]
+  className: '', iconSize: [32, 32], iconAnchor: [16, 16]
+});
+
+// Custom arrival airport icon (red target)
+const arrivalIcon = new L.DivIcon({
+  html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#f44336" width="32px" height="32px" style="filter: drop-shadow(0 0 3px black);">
+    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10Z"/>
+  </svg>`,
+  className: '', iconSize: [32, 32], iconAnchor: [16, 16]
 });
 
 // --- UTILITY COMPONENTS ---
@@ -75,33 +83,78 @@ const Metric = ({ label, value }) => (
 
 // --- MAP COMPONENT ---
 const WeatherMap = ({ departure, arrival }) => {
-  if (!departure?.coords || !arrival?.coords) {
+  const mapRef = React.useRef();
+
+  // Handle case where coordinates might not be available (always calculate for hooks)
+  const depCoords = departure?.coords || [20, 0];
+  const arrCoords = arrival?.coords || [20, 0];
+  
+  const positions = [depCoords, arrCoords];
+  
+  // Calculate center and bounds for better fitting
+  const latitudes = [depCoords[0], arrCoords[0]];
+  const longitudes = [depCoords[1], arrCoords[1]];
+  const center = [
+    (Math.max(...latitudes) + Math.min(...latitudes)) / 2,
+    (Math.max(...longitudes) + Math.min(...longitudes)) / 2
+  ];
+  
+  // Calculate appropriate zoom level based on distance with padding
+  const latDiff = Math.abs(depCoords[0] - arrCoords[0]);
+  const lonDiff = Math.abs(depCoords[1] - arrCoords[1]);
+  const maxDiff = Math.max(latDiff, lonDiff);
+  
+  let zoomLevel = 6; // Default zoom
+  if (maxDiff > 80) zoomLevel = 2;      // Global
+  else if (maxDiff > 40) zoomLevel = 3;  // Intercontinental
+  else if (maxDiff > 20) zoomLevel = 4;  // Continental
+  else if (maxDiff > 10) zoomLevel = 5;  // Regional
+  else if (maxDiff > 5) zoomLevel = 6;   // Local
+  else if (maxDiff > 1) zoomLevel = 7;   // City-to-city
+  else zoomLevel = 8;                    // Very local
+  
+  const depLevel = departure?.analysis?.overall;
+  const arrLevel = arrival?.analysis?.overall;
+  const routeColor = (depLevel === 'red' || arrLevel === 'red') ? '#f44336' : (depLevel === 'yellow' || arrLevel === 'yellow') ? '#ffeb3b' : '#4caf50';
+
+  // Effect to recenter map when data changes (MUST be called before any conditional returns)
+  React.useEffect(() => {
+    if (mapRef.current && departure && arrival) {
+      const map = mapRef.current;
+      setTimeout(() => {
+        map.setView(center, zoomLevel);
+      }, 100);
+    }
+  }, [departure?.icao, arrival?.icao, center, zoomLevel]);
+
+  // Show world map if no data yet (conditional return AFTER all hooks)
+  if (!departure || !arrival) {
     return (
-      <div style={styles.mapPanel}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#666' }}>
-          <p>Enter departure and arrival airports to view route map</p>
+      <MapContainer center={[20, 0]} zoom={2} style={styles.mapPanel} ref={mapRef}>
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: 'rgba(0,0,0,0.7)', color: 'white', padding: '20px', borderRadius: '10px', textAlign: 'center', zIndex: 1000 }}>
+          <p>🌍 Enter departure and arrival airports to view route</p>
         </div>
-      </div>
+      </MapContainer>
     );
   }
 
-  const positions = [departure.coords, arrival.coords];
-  const center = [(departure.coords[0] + arrival.coords[0]) / 2, (departure.coords[1] + arrival.coords[1]) / 2];
-  
-  const depLevel = departure.analysis?.overall;
-  const arrLevel = arrival.analysis?.overall;
-  const routeColor = (depLevel === 'red' || arrLevel === 'red') ? '#f44336' : (depLevel === 'yellow' || arrLevel === 'yellow') ? '#ffeb3b' : '#4caf50';
-
   return (
-    <MapContainer center={center} zoom={4} style={styles.mapPanel}>
+    <MapContainer center={center} zoom={zoomLevel} style={styles.mapPanel} ref={mapRef}>
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
-      <Marker position={departure.coords} icon={airplaneIcon}>
-        <Tooltip>{departure.icao}</Tooltip>
+      <Marker position={depCoords} icon={departureIcon}>
+        <Tooltip permanent direction="top" offset={[0, -10]}>
+          <strong>🛫 {departure.icao}</strong><br/>
+          Departure
+        </Tooltip>
       </Marker>
-      <Marker position={arrival.coords}>
-        <Tooltip>{arrival.icao}</Tooltip>
+      <Marker position={arrCoords} icon={arrivalIcon}>
+        <Tooltip permanent direction="top" offset={[0, -10]}>
+          <strong>🛬 {arrival.icao}</strong><br/>
+          Arrival
+        </Tooltip>
       </Marker>
-      <Polyline positions={positions} color={routeColor} weight={5} opacity={0.8} />
+      <Polyline positions={positions} color={routeColor} weight={4} opacity={0.8} />
     </MapContainer>
   );
 };
@@ -133,7 +186,9 @@ function App() {
     <div style={styles.app}>
       <WeatherMap departure={data?.departure} arrival={data?.arrival} />
       <div style={styles.dashboardPanel}>
-        <h2 style={{ textAlign: 'center', margin: '0 0 20px 0' }}>Flight Weather Briefing</h2>
+        <h2 style={{ textAlign: 'center', margin: '0 0 20px 0', fontSize: '24px', fontWeight: 'bold' }}>
+          ✈️ Aerolytics - Weather Copilot
+        </h2>
         <div style={styles.inputContainer}>
           <input type="text" value={departureIcao} onChange={(e) => setDepartureIcao(e.target.value)} style={styles.input} maxLength={4} placeholder="Departure ICAO" />
           <input type="text" value={arrivalIcao} onChange={(e) => setArrivalIcao(e.target.value)} style={styles.input} maxLength={4} placeholder="Arrival ICAO" />

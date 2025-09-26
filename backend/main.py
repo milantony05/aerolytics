@@ -26,11 +26,120 @@ app.add_middleware(
 )
 
 
+# Comprehensive worldwide airport coordinates database
 STATION_COORDS = {
-    "KLAX": [33.9416, -118.4085], "KSFO": [37.6188, -122.3750],
-    "KJFK": [40.6413, -73.7781], "KORD": [41.9742, -87.9073],
-    "KATL": [33.6407, -84.4277], "VOBL": [13.1989, 77.7068]
+    # United States Major Airports
+    "KLAX": [33.9416, -118.4085],  # Los Angeles
+    "KJFK": [40.6413, -73.7781],   # New York JFK
+    "KORD": [41.9742, -87.9073],   # Chicago O'Hare
+    "KATL": [33.6407, -84.4277],   # Atlanta
+    "KSFO": [37.6188, -122.3750],  # San Francisco
+    "KDEN": [39.8561, -104.6737],  # Denver
+    "KLAS": [36.0840, -115.1537],  # Las Vegas
+    "KBOS": [42.3656, -71.0096],   # Boston
+    "KMIA": [25.7959, -80.2870],   # Miami
+    "KSEA": [47.4502, -122.3088],  # Seattle
+    
+    # India Major Airports
+    "VIDP": [28.5562, 77.1000],    # Delhi
+    "VABB": [19.0896, 72.8656],    # Mumbai
+    "VOBL": [12.9716, 77.5946],    # Bangalore
+    "VOMM": [13.0827, 80.2707],    # Chennai
+    "VECC": [22.6546, 88.4473],    # Kolkata
+    "VOHS": [17.2313, 78.4298],    # Hyderabad
+    "VOCI": [22.3284, 70.7794],    # Ahmedabad
+    "VOSR": [11.1361, 75.9553],    # Calicut
+    "VOTV": [8.4821, 76.9200],     # Thiruvananthapuram
+    "VEGY": [26.1061, 91.5859],    # Guwahati
+    
+    # Europe Major Airports
+    "EGLL": [51.4700, -0.4543],    # London Heathrow
+    "LFPG": [49.0097, 2.5479],     # Paris Charles de Gaulle
+    "EDDF": [50.0264, 8.5431],     # Frankfurt
+    "EHAM": [52.3086, 4.7639],     # Amsterdam
+    "LEMD": [40.4719, -3.5626],    # Madrid
+    "LIRF": [41.8003, 12.2389],    # Rome
+    "EGKK": [51.1481, -0.1903],    # London Gatwick
+    "EDDM": [48.3538, 11.7861],    # Munich
+    "LSZH": [47.4647, 8.5492],     # Zurich
+    
+    # Asia-Pacific Major Airports
+    "RJTT": [35.7647, 140.3864],   # Tokyo Haneda
+    "RKSI": [37.4691, 126.4505],   # Seoul Incheon
+    "VHHH": [22.3080, 113.9185],   # Hong Kong
+    "WSSS": [1.3644, 103.9915],    # Singapore
+    "YBBN": [-27.3942, 153.1218],  # Brisbane
+    "YSSY": [-33.9399, 151.1753],  # Sydney
+    "NZAA": [-37.0082, 174.7850],  # Auckland
+    "RJAA": [35.7720, 140.3929],   # Tokyo Narita
+    
+    # Middle East Major Airports
+    "OMDB": [25.2532, 55.3657],    # Dubai
+    "OTHH": [25.2731, 51.6089],    # Doha
+    "OERK": [24.9576, 46.6986],    # Riyadh
+    "LTBA": [40.9769, 28.8146],    # Istanbul
+    
+    # Canada Major Airports
+    "CYYZ": [43.6777, -79.6248],   # Toronto
+    "CYVR": [49.1967, -123.1816],  # Vancouver
+    "CYUL": [45.4706, -73.7408],   # Montreal
+    
+    # Other Notable Airports
+    "SBGR": [-23.4356, -46.4731],  # São Paulo
+    "SAEZ": [-34.8222, -58.5358],  # Buenos Aires
+    "FAJS": [-26.1392, 28.2460],   # Johannesburg
+    "HECA": [30.1219, 31.4056],    # Cairo
 }
+
+def get_airport_coordinates(icao_code: str):
+    """
+    Get coordinates for an airport ICAO code.
+    First checks local database, then falls back to estimation based on ICAO prefix.
+    """
+    icao_upper = icao_code.upper()
+    
+    # First check our comprehensive database
+    if icao_upper in STATION_COORDS:
+        return STATION_COORDS[icao_upper]
+    
+    # Fallback: Estimate based on ICAO code prefix (regional approximation)
+    region_estimates = {
+        'K': [39.0, -98.0],    # USA (center)
+        'C': [56.0, -106.0],   # Canada
+        'EG': [54.0, -2.0],    # UK
+        'LF': [46.0, 2.0],     # France
+        'ED': [51.0, 10.0],    # Germany
+        'EH': [52.0, 5.0],     # Netherlands
+        'LE': [40.0, -4.0],    # Spain
+        'LI': [42.0, 12.0],    # Italy
+        'LS': [47.0, 8.0],     # Switzerland
+        'VI': [20.0, 77.0],    # India (North)
+        'VO': [15.0, 78.0],    # India (South)
+        'VE': [26.0, 91.0],    # India (East)
+        'RJ': [36.0, 140.0],   # Japan
+        'RK': [37.0, 127.0],   # South Korea
+        'VH': [22.0, 114.0],   # Hong Kong
+        'WS': [1.0, 104.0],    # Singapore
+        'YS': [-34.0, 151.0],  # Australia (Sydney area)
+        'YB': [-27.0, 153.0],  # Australia (Brisbane area)
+        'OM': [25.0, 55.0],    # UAE
+        'OT': [25.0, 51.0],    # Qatar
+        'OE': [24.0, 47.0],    # Saudi Arabia
+        'LT': [39.0, 35.0],    # Turkey
+        'SB': [-23.0, -46.0],  # Brazil (São Paulo area)
+        'SA': [-34.0, -64.0],  # Argentina
+        'FA': [-26.0, 28.0],   # South Africa
+        'HE': [30.0, 31.0],    # Egypt
+    }
+    
+    # Try different prefix lengths
+    for prefix_len in [2, 1]:
+        prefix = icao_upper[:prefix_len]
+        if prefix in region_estimates:
+            return region_estimates[prefix]
+    
+    # Ultimate fallback: Return center of world map
+    return [20.0, 0.0]
 
 def parse_temp(t_str: str):
     try: return float(t_str.replace("C", ""))
@@ -69,7 +178,7 @@ def analyze_station(metar: dict, sigmets: list) -> dict:
     # Check SIGMET impacts
     station_coord = None
     if "station" in metar:
-        station_coord = STATION_COORDS.get(metar["station"])
+        station_coord = get_airport_coordinates(metar["station"])
     
     if station_coord:
         for sigmet in sigmets:
@@ -177,14 +286,14 @@ def get_route_weather(departure_icao: str, arrival_icao: str):
         return {
             "departure": {
                 "icao": departure_icao.upper(),
-                "coords": STATION_COORDS.get(departure_icao.upper()),
+                "coords": get_airport_coordinates(departure_icao),
                 "summary_text": dep_summary,
                 "analysis": departure_weather['analysis'],
                 "decoded_metar": departure_weather['decoded_metar']
             },
             "arrival": {
                 "icao": arrival_icao.upper(),
-                "coords": STATION_COORDS.get(arrival_icao.upper()),
+                "coords": get_airport_coordinates(arrival_icao),
                 "summary_text": arr_summary,
                 "analysis": arrival_weather['analysis'],
                 "decoded_metar": arrival_weather['decoded_metar']
