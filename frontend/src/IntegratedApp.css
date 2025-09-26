@@ -1,0 +1,230 @@
+/* Integrated App Styles */
+.integrated-app {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Custom animations for the integrated app */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* View transition animations */
+.view-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Panel animations */
+.panel-enter {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.panel-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.panel-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.panel-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Custom scrollbar for left panel */
+.integrated-app .left-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.integrated-app .left-panel::-webkit-scrollbar-track {
+  background: #333;
+  border-radius: 4px;
+}
+
+.integrated-app .left-panel::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+.integrated-app .left-panel::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* Responsive design for integrated app */
+@media (max-width: 1200px) {
+  .integrated-app .left-panel {
+    width: 350px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .integrated-app {
+    flex-direction: column;
+  }
+  
+  .integrated-app .left-panel {
+    width: 100% !important;
+    height: 60vh;
+    border-right: none;
+    border-bottom: 1px solid #333;
+  }
+  
+  .integrated-app .right-panel {
+    height: 40vh;
+  }
+  
+  .integrated-app .view-toggle {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .integrated-app .toggle-button {
+    padding: 12px;
+    font-size: 14px;
+  }
+}
+
+/* Enhanced button hover effects */
+.integrated-app button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.integrated-app button:active {
+  transform: translateY(0);
+}
+
+/* Loading state enhancements */
+.integrated-app .loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #7f8c8d;
+}
+
+.integrated-app .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+/* Weather card enhancements */
+.integrated-app .weather-card {
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  border: 1px solid #405060;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.integrated-app .weather-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Metric grid enhancements */
+.integrated-app .metric-item {
+  background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+  border: 1px solid #4a5568;
+  transition: all 0.2s ease;
+}
+
+.integrated-app .metric-item:hover {
+  background: linear-gradient(135deg, #4a5568 0%, #34495e 100%);
+  transform: scale(1.02);
+}
+
+/* Error message styling */
+.integrated-app .error-message {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid #e74c3c;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 16px 0;
+  color: #e74c3c;
+  text-align: center;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Success message styling */
+.integrated-app .success-message {
+  background: rgba(39, 174, 96, 0.1);
+  border: 1px solid #27ae60;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 16px 0;
+  color: #27ae60;
+  text-align: center;
+}
+
+/* Map container enhancements */
+.integrated-app .map-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.integrated-app .map-overlay {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+/* Chat integration enhancements */
+.integrated-app .chat-integration {
+  border-top: 2px solid #3498db;
+  background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+}
+
+/* Accessibility improvements */
+.integrated-app button:focus {
+  outline: 2px solid #3498db;
+  outline-offset: 2px;
+}
+
+.integrated-app input:focus,
+.integrated-app textarea:focus {
+  outline: 2px solid #3498db;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .integrated-app .chat-panel {
+    display: none;
+  }
+  
+  .integrated-app .view-toggle {
+    display: none;
+  }
+  
+  .integrated-app {
+    background: white !important;
+    color: black !important;
+  }
+}

@@ -5,6 +5,9 @@ from typing import List, Any, Dict
 from fastapi.middleware.cors import CORSMiddleware
 from metar import Metar
 import numpy as np
+from datetime import datetime
+from gemini_chat import router as gemini_router
+from sigmet_parser import SigmetParser
 
 app = FastAPI(title="Aviation Weather API")
 
@@ -25,6 +28,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include Gemini chat router
+app.include_router(gemini_router, prefix="/api/gemini", tags=["gemini"])
+
 @app.get("/")
 async def root():
     """Health check endpoint"""
@@ -35,7 +41,12 @@ async def root():
         "endpoints": [
             "/metar/decoded/{icao}",
             "/metar/analyzed/{icao}", 
-            "/route-weather/{departure_icao}/{arrival_icao}"
+            "/route-weather/{departure_icao}/{arrival_icao}",
+            "/sigmet/current",
+            "/sigmet/analysis", 
+            "/sigmet/raw",
+            "/api/gemini/chat",
+            "/api/gemini/health"
         ]
     }
 
@@ -374,4 +385,58 @@ def get_route_weather_query(departure: str, arrival: str):
     """
     # Validation happens in get_route_weather
     return get_route_weather(departure, arrival)
+
+# Initialize SIGMET parser
+sigmet_parser = SigmetParser()
+
+@app.get("/sigmet/current")
+async def get_current_sigmets():
+    """
+    Get current SIGMET data
+    """
+    try:
+        sigmets = sigmet_parser.get_current_sigmets()
+        return {
+            "status": "success",
+            "count": len(sigmets),
+            "sigmets": sigmets,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch SIGMET data: {str(e)}")
+
+@app.get("/sigmet/analysis")
+async def get_sigmet_analysis():
+    """
+    Get analyzed SIGMET data for flight planning
+    """
+    try:
+        sigmets = sigmet_parser.get_current_sigmets()
+        analysis = sigmet_parser.analyze_sigmets_for_flight(sigmets)
+        return {
+            "status": "success",
+            "analysis": analysis,
+            "raw_sigmets": sigmets,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to analyze SIGMET data: {str(e)}")
+
+@app.get("/sigmet/raw")
+async def get_raw_sigmets():
+    """
+    Get raw SIGMET text data
+    """
+    try:
+        response = requests.get(SIGMET_URL, timeout=10)
+        if response.status_code == 200:
+            return {
+                "status": "success", 
+                "raw_data": response.text,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=response.status_code, detail="Failed to fetch SIGMET data")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching SIGMET data: {str(e)}")
 

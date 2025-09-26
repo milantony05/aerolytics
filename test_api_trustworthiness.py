@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
 API Trustworthiness Test - Simple Terminal Verification Program
-Tests all weather APIs to ensure data reliability and accuracy
+**1. Backend Connection Test**
+**2. METAR API Test**
+**3. Route Weather API Test**
+**4. Data Freshness Test**
+**5. Error Handling Test**
 """
 
 import httpx

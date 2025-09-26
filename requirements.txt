@@ -9,6 +9,7 @@ requests>=2.31.0
 httpx>=0.24.0
 python-metar>=1.4.0
 numpy>=1.20.0
+google-generativeai>=0.3.0
 
 # Legacy Flask Dependencies (for backward compatibility)
 flask>=2.3.0

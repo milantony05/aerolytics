@@ -6,6 +6,7 @@ const AirportSearchInput = ({ value, onChange, placeholder, label }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [selectedAirport, setSelectedAirport] = useState(null);
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
@@ -21,7 +22,7 @@ const AirportSearchInput = ({ value, onChange, placeholder, label }) => {
         setSearchQuery(value);
       }
     }
-  }, [value]);
+  }, [value, searchQuery]);
 
   // Handle search input changes
   const handleInputChange = (e) => {
