@@ -1,320 +1,184 @@
-import React, { useState } from "react";
-import axios from "axios";
+import React, { useState } from 'react';
+import './App.css';
 import AirportSearchInput from './AirportSearchInput';
 import FlightChatbot from './FlightChatbot';
 import GoogleFlightMap from './GoogleFlightMap';
-import './IntegratedApp.css';
 
-const IntegratedApp = () => {
-  const [departureIcao, setDepartureIcao] = useState("");
-  const [arrivalIcao, setArrivalIcao] = useState("");
+const WeatherBar = ({ level }) => {
+  const getColor = () => {
+    switch(level) {
+      case 'good': return '#28a745';
+      case 'caution': return '#ffc107';
+      case 'poor': return '#dc3545';
+      default: return '#6c757d';
+    }
+  };
+
+  return (
+    <div className="weather-bar" style={{ backgroundColor: getColor() }} />
+  );
+};
+
+const Metric = ({ label, value }) => (
+  <div className="metric">
+    <div className="metric-label">{label}</div>
+    <div className="metric-value">{value || 'N/A'}</div>
+  </div>
+);
+
+function App() {
+  const [departureIcao, setDepartureIcao] = useState('');
+  const [arrivalIcao, setArrivalIcao] = useState('');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [activeView, setActiveView] = useState('weather'); // 'weather', 'chatbot', 'both'
+  const [error, setError] = useState('');
+  const [chatbotOpen, setChatbotOpen] = useState(false);
+
+  const parseMetar = (metarText) => {
+    if (!metarText) return null;
+    
+    const windMatch = metarText.match(/(\d{3})(\d{2,3})(G\d{2,3})?KT/);
+    const visMatch = metarText.match(/(\d+|\d+\/\d+)SM/);
+    const tempMatch = metarText.match(/M?(\d{2})\/M?(\d{2})/);
+    const pressureMatch = metarText.match(/A(\d{4})/);
+    
+    return {
+      wind: windMatch ? `${windMatch[1]}°/${windMatch[2]}kt${windMatch[3] || ''}` : null,
+      visibility: visMatch ? `${visMatch[1]}SM` : null,
+      temperature: tempMatch ? `${tempMatch[1]}°C` : null,
+      pressure: pressureMatch ? `${pressureMatch[1].slice(0,2)}.${pressureMatch[1].slice(2)}` : null
+    };
+  };
 
   const fetchData = async () => {
-    if (!departureIcao.trim() || !arrivalIcao.trim()) {
-      setError("Please enter both departure and arrival airports");
+    if (!departureIcao || !arrivalIcao) {
+      setError('Please enter both departure and arrival airports');
       return;
     }
 
     setLoading(true);
-    setError("");
+    setError('');
     
     try {
-      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/route-weather`, {
-        params: {
-          departure: departureIcao.trim().toUpperCase(),
-          arrival: arrivalIcao.trim().toUpperCase()
-        }
-      });
-      setData(response.data);
+      const response = await fetch(`http://localhost:8000/weather/${departureIcao}/${arrivalIcao}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      setData(result);
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || err.message || "Failed to fetch weather data";
-      setError(errorMsg);
-      setData(null);
+      setError(`Error fetching data: ${err.message}`);
+      console.error('Fetch error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChatbotRouteSelect = (departure, arrival) => {
-    setDepartureIcao(departure);
-    setArrivalIcao(arrival);
-    // Auto-fetch weather data when chatbot suggests a route
-    setTimeout(() => {
-      fetchData();
-    }, 500);
-  };
+  const depMetar = data?.departure?.raw_data?.metar ? parseMetar(data.departure.raw_data.metar) : null;
+  const arrMetar = data?.arrival?.raw_data?.metar ? parseMetar(data.arrival.raw_data.metar) : null;
 
-  const WeatherMap = ({ departure, arrival }) => {
-    if (!departure || !arrival) {
-      return (
-        <div style={{ 
-          height: '100%', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          textAlign: 'center',
-          padding: '40px'
-        }}>
-          <div>
-            <h3>🌍 Flight Route Visualization</h3>
-            <p>Enter departure and arrival airports to view weather conditions and flight path</p>
-          </div>
-        </div>
-      );
-    }
 
-    // Use Google Maps for enhanced visualization
-    return (
-      <GoogleFlightMap 
-        departure={departure.icao} 
-        arrival={arrival.icao}
-      />
-    );
-  };
-
-  const LoadingSpinner = () => (
-    <div style={{ textAlign: 'center', padding: '20px' }}>
-      <div style={{ 
-        width: '40px', 
-        height: '40px', 
-        border: '4px solid #f3f3f3', 
-        borderTop: '4px solid #3498db', 
-        borderRadius: '50%', 
-        animation: 'spin 1s linear infinite',
-        margin: '0 auto'
-      }}></div>
-      <p style={{ marginTop: '10px', color: '#7f8c8d' }}>Analyzing weather conditions...</p>
-    </div>
-  );
-
-  const WeatherBar = ({ level }) => {
-    const colors = { green: '#27ae60', yellow: '#f39c12', red: '#e74c3c' };
-    const labels = { green: 'Good Conditions', yellow: 'Caution Advised', red: 'Severe Weather' };
-    
-    return (
-      <div style={{
-        background: colors[level] || '#95a5a6',
-        color: 'white',
-        padding: '8px 12px',
-        borderRadius: '6px',
-        textAlign: 'center',
-        fontWeight: 'bold',
-        fontSize: '14px',
-        margin: '10px 0'
-      }}>
-        {labels[level] || 'Unknown'}
-      </div>
-    );
-  };
-
-  const Metric = ({ label, value }) => (
-    <div style={{
-      backgroundColor: '#34495e',
-      padding: '8px',
-      borderRadius: '4px',
-      textAlign: 'center'
-    }}>
-      <div style={{ fontSize: '12px', color: '#bdc3c7', marginBottom: '4px' }}>{label}</div>
-      <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#ecf0f1' }}>
-        {value || 'N/A'}
-      </div>
-    </div>
-  );
-
-  const styles = {
-    app: {
-      display: 'flex',
-      height: '100vh',
-      width: '100vw',
-      backgroundColor: '#1a1a1a',
-      color: '#f0f0f0',
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
-    },
-    leftPanel: {
-      width: activeView === 'both' ? '400px' : '450px',
-      height: '100vh',
-      padding: '20px',
-      backgroundColor: '#242424',
-      overflowY: 'auto',
-      borderRight: '1px solid #333',
-      transition: 'width 0.3s ease'
-    },
-    rightPanel: {
-      flex: 1,
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column'
-    },
-    mapPanel: {
-      flex: activeView === 'both' ? 1 : 1,
-      transition: 'flex 0.3s ease'
-    },
-    chatPanel: {
-      height: activeView === 'both' ? '50%' : '100%',
-      borderTop: activeView === 'both' ? '1px solid #333' : 'none',
-      transition: 'height 0.3s ease'
-    },
-    viewToggle: {
-      display: 'flex',
-      gap: '8px',
-      marginBottom: '20px',
-      padding: '4px',
-      backgroundColor: '#333',
-      borderRadius: '8px'
-    },
-    toggleButton: {
-      flex: 1,
-      padding: '8px 12px',
-      border: 'none',
-      borderRadius: '6px',
-      fontSize: '12px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease'
-    },
-    card: {
-      backgroundColor: '#2c2c2c',
-      padding: '15px',
-      borderRadius: '8px',
-      marginBottom: '20px'
-    },
-    metricGrid: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '10px',
-      marginTop: '15px'
-    }
-  };
-
-  const getToggleButtonStyle = (view) => ({
-    ...styles.toggleButton,
-    backgroundColor: activeView === view ? '#3498db' : 'transparent',
-    color: activeView === view ? 'white' : '#bdc3c7'
-  });
-
-  const depMetar = data?.departure?.decoded_metar;
-  const arrMetar = data?.arrival?.decoded_metar;
 
   return (
-    <div style={styles.app}>
-      <div style={styles.leftPanel}>
-        <h2 style={{ textAlign: 'center', margin: '0 0 20px 0', fontSize: '24px', fontWeight: 'bold' }}>
-          ✈️ Aerolytics Flight Assistant
-        </h2>
+    <div className="app">
+      <header className="app-header">
+        <h1>Aerolytics - Flight Dashboard</h1>
+      </header>
 
-        <div style={styles.viewToggle}>
-          <button 
-            style={getToggleButtonStyle('weather')}
-            onClick={() => setActiveView('weather')}
-          >
-            Weather Only
-          </button>
-          <button 
-            style={getToggleButtonStyle('chatbot')}
-            onClick={() => setActiveView('chatbot')}
-          >
-            Chatbot Only
-          </button>
-          <button 
-            style={getToggleButtonStyle('both')}
-            onClick={() => setActiveView('both')}
-          >
-            Both Views
-          </button>
-        </div>
+      <div className="main-content">
+        <div className="weather-panel">
+          <div className="search-section">
+            <AirportSearchInput
+              value={departureIcao}
+              onChange={setDepartureIcao}
+              placeholder="Departure airport..."
+              label="From"
+            />
+            <AirportSearchInput
+              value={arrivalIcao}
+              onChange={setArrivalIcao}
+              placeholder="Arrival airport..."
+              label="To"
+            />
+            <button 
+              onClick={fetchData} 
+              disabled={loading}
+              className="search-button"
+            >
+              {loading ? "Loading..." : "Get Report"}
+            </button>
+          </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <AirportSearchInput
-            value={departureIcao}
-            onChange={setDepartureIcao}
-            placeholder="Search departure airport by name, city, or ICAO code..."
-            label="Departure Airport"
-          />
-          <AirportSearchInput
-            value={arrivalIcao}
-            onChange={setArrivalIcao}
-            placeholder="Search arrival airport by name, city, or ICAO code..."
-            label="Arrival Airport"
-          />
-        </div>
+          {error && <div className="error">{error}</div>}
+          
+          {loading && <div className="loading">Loading weather data...</div>}
 
-        <button 
-          onClick={fetchData} 
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '12px',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            backgroundColor: '#005f73',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            marginBottom: '20px'
-          }}
-        >
-          {loading ? "Loading..." : "Get Weather Briefing"}
-        </button>
+          {data && !loading && (
+            <div className="weather-results">
+              <div className="weather-card">
+                <h3>Departure: {data.departure.icao}</h3>
+                <div className="weather-content">
+                  {data.departure.summary_text}
+                </div>
+                <WeatherBar level={data.departure.analysis.overall} />
+                <div className="metrics">
+                  <Metric label="Wind" value={depMetar?.wind} />
+                  <Metric label="Visibility" value={depMetar?.visibility} />
+                  <Metric label="Temperature" value={depMetar?.temperature} />
+                  <Metric label="Pressure" value={depMetar?.pressure} />
+                </div>
+              </div>
 
-        {error && <p style={{ color: "#f44336", textAlign: 'center', marginBottom: '20px' }}>{error}</p>}
-        
-        {loading && <LoadingSpinner />}
-
-        {data && !loading && (
-          <div>
-            <div style={styles.card}>
-              <h3>Departure: {data.departure.icao}</h3>
-              <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '14px', lineHeight: '1.5' }}>
-                {data.departure.summary_text}
-              </pre>
-              <WeatherBar level={data.departure.analysis.overall} />
-              <div style={styles.metricGrid}>
-                <Metric label="Wind" value={depMetar?.wind} />
-                <Metric label="Visibility" value={depMetar?.visibility} />
-                <Metric label="Temperature" value={depMetar?.temperature} />
-                <Metric label="Pressure" value={depMetar?.pressure} />
+              <div className="weather-card">
+                <h3>Arrival: {data.arrival.icao}</h3>
+                <div className="weather-content">
+                  {data.arrival.summary_text}
+                </div>
+                <WeatherBar level={data.arrival.analysis.overall} />
+                <div className="metrics">
+                  <Metric label="Wind" value={arrMetar?.wind} />
+                  <Metric label="Visibility" value={arrMetar?.visibility} />
+                  <Metric label="Temperature" value={arrMetar?.temperature} />
+                  <Metric label="Pressure" value={arrMetar?.pressure} />
+                </div>
               </div>
             </div>
+          )}
+        </div>
 
-            <div style={styles.card}>
-              <h3>Arrival: {data.arrival.icao}</h3>
-              <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '14px', lineHeight: '1.5' }}>
-                {data.arrival.summary_text}
-              </pre>
-              <WeatherBar level={data.arrival.analysis.overall} />
-              <div style={styles.metricGrid}>
-                <Metric label="Wind" value={arrMetar?.wind} />
-                <Metric label="Visibility" value={arrMetar?.visibility} />
-                <Metric label="Temperature" value={arrMetar?.temperature} />
-                <Metric label="Pressure" value={arrMetar?.pressure} />
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="map-section">
+          <GoogleFlightMap
+            departure={departureIcao}
+            arrival={arrivalIcao}
+            weatherData={data}
+          />
+        </div>
       </div>
 
-      <div style={styles.rightPanel}>
-        {(activeView === 'weather' || activeView === 'both') && (
-          <div style={styles.mapPanel}>
-            <WeatherMap departure={data?.departure} arrival={data?.arrival} />
+      <button 
+        className="chatbot-toggle"
+        onClick={() => setChatbotOpen(!chatbotOpen)}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        </svg>
+      </button>
+
+      {chatbotOpen && (
+        <div className="chatbot-panel">
+          <div className="chatbot-header">
+            <span>Flight Assistant</span>
+            <button onClick={() => setChatbotOpen(false)}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
           </div>
-        )}
-        
-        {(activeView === 'chatbot' || activeView === 'both') && (
-          <div style={styles.chatPanel}>
-            <FlightChatbot onRouteSelect={handleChatbotRouteSelect} />
-          </div>
-        )}
-      </div>
+          <FlightChatbot />
+        </div>
+      )}
     </div>
   );
-};
+}
 
-export default IntegratedApp;
+export default App;

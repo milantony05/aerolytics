@@ -96,13 +96,15 @@ const GoogleFlightMap = ({ departure, arrival, onMapReady }) => {
   };
 
   const createAirportMarker = (airport, position, type) => {
+    // Classic map marker pins - green for departure, red for destination
     const icon = {
-      path: window.google.maps.SymbolPath.CIRCLE,
-      scale: 8,
-      fillColor: type === 'departure' ? '#4CAF50' : '#2196F3',
+      path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+      scale: 1.5,
+      fillColor: type === 'departure' ? '#4CAF50' : '#F44336',
       fillOpacity: 1,
-      strokeColor: '#ffffff',
-      strokeWeight: 2
+      strokeColor: '#FFFFFF',
+      strokeWeight: 2,
+      anchor: new window.google.maps.Point(12, 22)
     };
 
     const marker = new window.google.maps.Marker({
@@ -114,12 +116,14 @@ const GoogleFlightMap = ({ departure, arrival, onMapReady }) => {
 
     const infoWindow = new window.google.maps.InfoWindow({
       content: `
-        <div style="padding: 8px; font-family: Arial, sans-serif;">
-          <h4 style="margin: 0 0 8px 0; color: #333;">${airport.name}</h4>
+        <div style="padding: 10px; font-family: Arial, sans-serif;">
+          <h4 style="margin: 0 0 8px 0; color: ${type === 'departure' ? '#4CAF50' : '#F44336'};">
+            ${type === 'departure' ? '�' : '�'} ${airport.name}
+          </h4>
           <p style="margin: 0; color: #666;">
             <strong>ICAO:</strong> ${airport.icao}<br>
             <strong>Location:</strong> ${airport.city}, ${airport.country}<br>
-            <strong>Type:</strong> ${type === 'departure' ? 'Departure' : 'Arrival'} Airport
+            <strong>Type:</strong> ${type === 'departure' ? 'Departure Airport' : 'Destination Airport'}
           </p>
         </div>
       `

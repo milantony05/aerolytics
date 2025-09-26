@@ -95,7 +95,7 @@ const FlightChatbot = () => {
 
   // Handle Enter key press
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !isReceiving) {
+    if (e.key === 'Enter' && !e.shiftKey && !isReceiving) {
       e.preventDefault();
       sendMessage();
     }
@@ -103,55 +103,50 @@ const FlightChatbot = () => {
 
   return (
     <div className="flight-chatbot">
-      <div className="chatbot-header">
-        <h3>Aviation Assistant (Gemini via Backend)</h3>
-        <div className={`connection-status ${isReceiving ? 'busy' : 'idle'}`}>
-          <span className="status-dot"></span>
-          {isReceiving ? 'Thinking...' : 'Ready'}
-        </div>
-      </div>
-
       <div className="chat-messages">
         {messages.length === 0 && (
-          <div className="welcome-message">
-            <p>👨‍✈️ Welcome to your Aviation Weather Assistant!</p>
-            <p>I have access to real-time aviation weather data:</p>
-            <ul>
-              <li>METAR - Current weather conditions</li>
-              <li>TAF - Terminal forecasts</li>
-              <li>PIREP - Pilot reports (turbulence, icing)</li>
-              <li>SIGMET - Significant weather hazards</li>
-              <li>AIRMET - Weather advisories</li>
-            </ul>
-            <p><small>� Try: "Weather at KJFK" or "Any SIGMETs active?"</small></p>
+          <div className="message bot-message">
+            <div className="message-content">
+              <strong>✈️ Aviation Weather Assistant</strong>
+              <p>I have access to real-time aviation weather data:</p>
+              <ul>
+                <li><strong>METAR</strong> - Current weather conditions</li>
+                <li><strong>TAF</strong> - Terminal forecasts</li>
+                <li><strong>PIREP</strong> - Pilot reports</li>
+                <li><strong>SIGMET</strong> - Weather hazards</li>
+              </ul>
+              <p><em>Try: "Weather at KJFK" or "Any SIGMETs active?"</em></p>
+            </div>
           </div>
         )}
         
         {messages.map((message) => (
           <div key={message.id} className={`message ${message.type}-message`}>
             <div className="message-content">
-              {message.content || (message.type === 'bot' && isReceiving ? '✍️ Generating response...' : '')}
+              {message.content || (message.type === 'bot' && isReceiving ? '✨ Generating response...' : '')}
             </div>
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="chat-input">
-        <input
-          type="text"
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Ask about weather, flight planning, or aviation guidance..."
-          disabled={isReceiving}
-        />
-        <button
-          onClick={sendMessage}
-          disabled={isReceiving || !inputMessage.trim()}
-        >
-          {isReceiving ? '⏳' : 'Send'}
-        </button>
+      <div className="chat-input-section">
+        <div className="chat-input-container">
+          <textarea
+            className="chat-input"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Ask about weather..."
+            disabled={isReceiving}
+            rows={1}
+          />
+          <button
+            className="send-button"
+            onClick={sendMessage}
+            disabled={isReceiving || !inputMessage.trim()}
+          />
+        </div>
       </div>
     </div>
   );
