@@ -25,6 +25,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+async def root():
+    """Health check endpoint"""
+    return {
+        "status": "online",
+        "service": "Aerolytics Aviation Weather API",
+        "version": "1.0.0",
+        "endpoints": [
+            "/metar/decoded/{icao}",
+            "/metar/analyzed/{icao}", 
+            "/route-weather/{departure_icao}/{arrival_icao}"
+        ]
+    }
 
 # Comprehensive worldwide airport coordinates database
 STATION_COORDS = {
@@ -245,28 +258,74 @@ def generate_summary_text(analysis: dict, metar: dict) -> str:
 
 # --- UNCHANGED: Existing data endpoints ---
 # (get_metar, get_pirep, etc. remain here, unchanged for brevity)
+def validate_icao_code(icao: str) -> str:
+    """Validate ICAO airport code format"""
+    if not icao:
+        raise HTTPException(status_code=400, detail="ICAO code cannot be empty")
+    
+    icao = icao.strip().upper()
+    
+    # ICAO codes should be exactly 4 letters
+    if len(icao) != 4:
+        raise HTTPException(status_code=400, detail="ICAO code must be exactly 4 characters")
+    
+    # ICAO codes should only contain letters
+    if not icao.isalpha():
+        raise HTTPException(status_code=400, detail="ICAO code must contain only letters")
+    
+    return icao
+
 @app.get("/metar/decoded/{icao}")
 def get_metar_decoded(icao: str) -> Dict[str, Any]:
-    url = f"https://tgftp.nws.noaa.gov/data/observations/metar/stations/{icao.upper()}.TXT"
-    response = requests.get(url)
-    response.raise_for_status()
-    lines = response.text.strip().split("\n")
-    if len(lines) < 2: return {"error": "No METAR report available"}
-    raw_metar = lines[1]
+    # Validate ICAO code first
+    icao = validate_icao_code(icao)
+    
     try:
+        url = f"https://tgftp.nws.noaa.gov/data/observations/metar/stations/{icao}.TXT"
+        response = requests.get(url, timeout=10)
+        
+        if response.status_code == 404:
+            raise HTTPException(status_code=404, detail=f"No METAR data available for airport {icao}")
+        
+        response.raise_for_status()
+        lines = response.text.strip().split("\n")
+        
+        if len(lines) < 2:
+            raise HTTPException(status_code=404, detail=f"No METAR report available for {icao}")
+        
+        raw_metar = lines[1]
         obs = Metar.Metar(raw_metar)
-        return {"station": obs.station_id, "time": str(obs.time), "temperature": str(obs.temp), "dew_point": str(obs.dewpt), "wind": str(obs.wind()), "visibility": str(obs.vis), "pressure": str(obs.press), "weather": [str(w) for w in obs.weather], "sky": [str(layer) for layer in obs.sky], "raw": raw_metar}
+        
+        return {
+            "station_id": obs.station_id, 
+            "time": str(obs.time), 
+            "temperature": str(obs.temp), 
+            "dew_point": str(obs.dewpt), 
+            "wind": str(obs.wind()), 
+            "visibility": str(obs.vis), 
+            "pressure": str(obs.press), 
+            "weather": [str(w) for w in obs.weather], 
+            "sky": [str(layer) for layer in obs.sky], 
+            "raw": raw_metar
+        }
+        
+    except HTTPException:
+        raise
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=503, detail=f"Weather service unavailable: {str(e)}")
     except Exception as e:
-        return {"error": str(e), "raw": raw_metar}
+        raise HTTPException(status_code=404, detail=f"Unable to parse METAR data for {icao}: {str(e)}")
 
 @app.get("/metar/analyzed/{icao}")
 def get_metar_analyzed(icao: str) -> Dict[str, Any]:
+    # Validation is handled in get_metar_decoded
     decoded_metar = get_metar_decoded(icao)
-    if "error" in decoded_metar: raise HTTPException(status_code=404, detail=decoded_metar["error"])
+    
     try:
-        sigmets = requests.get(f"{SIGMET_URL}").json()
+        sigmets = requests.get(f"{SIGMET_URL}", timeout=10).json()
     except Exception:
         sigmets = []
+    
     analysis = analyze_station(decoded_metar, sigmets)
     return {"analysis": analysis, "decoded_metar": decoded_metar}
 
@@ -277,23 +336,27 @@ def get_route_weather(departure_icao: str, arrival_icao: str):
     Provides a full weather briefing for a flight route, including detailed summaries and coordinates.
     """
     try:
-        departure_weather = get_metar_analyzed(departure_icao)
-        arrival_weather = get_metar_analyzed(arrival_icao)
+        # Validate both ICAO codes
+        dep_icao = validate_icao_code(departure_icao)
+        arr_icao = validate_icao_code(arrival_icao)
+        
+        departure_weather = get_metar_analyzed(dep_icao)
+        arrival_weather = get_metar_analyzed(arr_icao)
 
         dep_summary = generate_summary_text(departure_weather['analysis'], departure_weather['decoded_metar'])
         arr_summary = generate_summary_text(arrival_weather['analysis'], arrival_weather['decoded_metar'])
 
         return {
             "departure": {
-                "icao": departure_icao.upper(),
-                "coords": get_airport_coordinates(departure_icao),
+                "icao": dep_icao,
+                "coords": get_airport_coordinates(dep_icao),
                 "summary_text": dep_summary,
                 "analysis": departure_weather['analysis'],
                 "decoded_metar": departure_weather['decoded_metar']
             },
             "arrival": {
-                "icao": arrival_icao.upper(),
-                "coords": get_airport_coordinates(arrival_icao),
+                "icao": arr_icao,
+                "coords": get_airport_coordinates(arr_icao),
                 "summary_text": arr_summary,
                 "analysis": arrival_weather['analysis'],
                 "decoded_metar": arrival_weather['decoded_metar']
@@ -303,4 +366,12 @@ def get_route_weather(departure_icao: str, arrival_icao: str):
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+
+@app.get("/route-weather")
+def get_route_weather_query(departure: str, arrival: str):
+    """
+    Route weather endpoint with query parameters (for testing compatibility)
+    """
+    # Validation happens in get_route_weather
+    return get_route_weather(departure, arrival)
 

@@ -3,6 +3,7 @@ import axios from "axios";
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import AirportSearchInput from './AirportSearchInput';
 
 // --- STYLING & ICONS ---
 const styles = {
@@ -189,9 +190,19 @@ function App() {
         <h2 style={{ textAlign: 'center', margin: '0 0 20px 0', fontSize: '24px', fontWeight: 'bold' }}>
           ✈️ Aerolytics - Weather Copilot
         </h2>
-        <div style={styles.inputContainer}>
-          <input type="text" value={departureIcao} onChange={(e) => setDepartureIcao(e.target.value)} style={styles.input} maxLength={4} placeholder="Departure ICAO" />
-          <input type="text" value={arrivalIcao} onChange={(e) => setArrivalIcao(e.target.value)} style={styles.input} maxLength={4} placeholder="Arrival ICAO" />
+        <div style={{ marginBottom: '20px' }}>
+          <AirportSearchInput
+            value={departureIcao}
+            onChange={setDepartureIcao}
+            placeholder="Search departure airport by name, city, or ICAO code..."
+            label="Departure Airport"
+          />
+          <AirportSearchInput
+            value={arrivalIcao}
+            onChange={setArrivalIcao}
+            placeholder="Search arrival airport by name, city, or ICAO code..."
+            label="Arrival Airport"
+          />
         </div>
         <button onClick={fetchData} disabled={loading} style={styles.button}>{loading ? "Loading..." : "Get Briefing"}</button>
         {error && <p style={{ color: "#f44336", textAlign: 'center', marginTop: '10px' }}>{error}</p>}
