@@ -49,52 +49,52 @@ const airplaneIcon = new L.DivIcon({
   html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="36px" height="36px" style="transform: rotate(90deg); filter: drop-shadow(0 0 3px black);">
     <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
   </svg>`,
-  className: '', iconSize: [36, 36], iconAnchor: [18, 18]
+  className: '', // important to clear default styling
+  iconSize: [36, 36],
+  iconAnchor: [18, 18]
 });
 
-// --- UTILITY COMPONENTS ---
-const LoadingSpinner = () => (
-  <div style={{ textAlign: 'center', margin: '30px 0' }}>
-    <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid #333', borderTop: '4px solid #005f73', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-    <p>Loading weather data...</p>
-  </div>
-);
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
+
+
+
+const LoadingSpinner = () => <div style={{ textAlign: "center", marginTop: 20 }}>Loading...</div>;
 
 const WeatherBar = ({ level }) => {
-  const colors = { green: '#4caf50', yellow: '#ffeb3b', red: '#f44336' };
-  const color = colors[level] || '#666';
-  return <div style={{ width: '100%', height: '8px', backgroundColor: color, borderRadius: '4px', margin: '10px 0' }}></div>;
+  const colors = { Clear: "#4caf50", "Significant Weather": "#ff9800", "Severe Weather": "#f44336" };
+  return <div style={{ marginTop: 5, padding: '8px', borderRadius: 5, backgroundColor: colors[level] || "#555", color: "white", fontWeight: "bold", textAlign: "center" }}>{level || "Unavailable"}</div>;
 };
 
 const Metric = ({ label, value }) => (
   <div style={styles.metricItem}>
-    <div style={{ fontSize: '12px', color: '#aaa' }}>{label}</div>
-    <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{value || 'N/A'}</div>
+    <div style={{ fontSize: '14px', color: '#aaa' }}>{label}</div>
+    <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{value || 'N/A'}</div>
   </div>
 );
 
-// --- MAP COMPONENT ---
+
 const WeatherMap = ({ departure, arrival }) => {
   if (!departure?.coords || !arrival?.coords) {
     return (
-      <div style={styles.mapPanel}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#666' }}>
-          <p>Enter departure and arrival airports to view route map</p>
-        </div>
-      </div>
+        <MapContainer center={[39.82, -98.57]} zoom={4} style={styles.mapPanel}>
+            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>' />
+        </MapContainer>
     );
   }
-
-  const positions = [departure.coords, arrival.coords];
-  const center = [(departure.coords[0] + arrival.coords[0]) / 2, (departure.coords[1] + arrival.coords[1]) / 2];
   
-  const depLevel = departure.analysis?.overall;
-  const arrLevel = arrival.analysis?.overall;
-  const routeColor = (depLevel === 'red' || arrLevel === 'red') ? '#f44336' : (depLevel === 'yellow' || arrLevel === 'yellow') ? '#ffeb3b' : '#4caf50';
+  const positions = [departure.coords, arrival.coords];
+  const worstWeather = (departure.analysis.overall === 'Severe Weather' || arrival.analysis.overall === 'Severe Weather') ? 'Severe Weather' :
+                       (departure.analysis.overall === 'Significant Weather' || arrival.analysis.overall === 'Significant Weather') ? 'Significant Weather' : 'Clear';
+  const routeColor = { Clear: "#4caf50", "Significant Weather": "#ff9800", "Severe Weather": "#f44336" }[worstWeather];
 
   return (
-    <MapContainer center={center} zoom={4} style={styles.mapPanel}>
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
+    <MapContainer bounds={positions} style={styles.mapPanel} padding={[50, 50]}>
+      <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>' />
       <Marker position={departure.coords} icon={airplaneIcon}>
         <Tooltip>{departure.icao}</Tooltip>
       </Marker>
@@ -176,3 +176,6 @@ function App() {
 }
 
 export default App;
+
+
+
