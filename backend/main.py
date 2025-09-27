@@ -8,6 +8,7 @@ import numpy as np
 from datetime import datetime
 from gemini_chat import router as gemini_router
 from sigmet_parser import SigmetParser
+from metar_parser import MetarParser
 
 app = FastAPI(title="Aviation Weather API")
 
@@ -187,15 +188,32 @@ def sigmet_affects_station(station_coord, sigmet):
 def analyze_station(metar: dict, sigmets: list) -> dict:
     wind = parse_wind(metar.get("wind", ""))
     vis = parse_visibility(metar.get("visibility", ""))
-    weather = [w.lower() for w in metar.get("weather", [])]
+    
+    # Handle both old string format and new structured weather format
+    weather_list = metar.get("weather", [])
+    weather = []
+    for w in weather_list:
+        if isinstance(w, dict):
+            # Extract description from structured weather data
+            desc = w.get('description', '').lower()
+            if desc:
+                weather.append(desc)
+            # Also check phenomena codes
+            for phenomenon in w.get('phenomena', []):
+                code = phenomenon.get('code', '').lower()
+                if code:
+                    weather.append(code)
+        elif isinstance(w, str):
+            weather.append(w.lower())
+    
     overall = "green"
     hazards = []
     
     # Check for severe weather conditions
-    if wind >= 25 or vis < 3 or any("thunderstorm" in w or "tornado" in w for w in weather):
+    if wind >= 25 or vis < 3 or any("thunderstorm" in w or "tornado" in w or "ts" in w for w in weather):
         overall = "red"
         hazards.append("Severe weather conditions")
-    elif wind >= 15 or vis < 5 or any("rain" in w or "snow" in w for w in weather):
+    elif wind >= 15 or vis < 5 or any("rain" in w or "snow" in w or "ra" in w or "sn" in w for w in weather):
         overall = "yellow"
         hazards.append("Significant weather conditions")
     
@@ -233,7 +251,8 @@ def generate_summary_text(analysis: dict, metar: dict) -> str:
     summary += f"Visibility: {vis}\n"
     
     if weather:
-        summary += f"Weather: {', '.join(weather)}\n"
+        weather_text = format_weather_phenomena(weather)
+        summary += f"Weather: {weather_text}\n"
     
     if analysis.get("hazards"):
         summary += f"\nHAZARDS: {'; '.join(analysis['hazards'])}\n"
@@ -248,13 +267,48 @@ def generate_summary_text(analysis: dict, metar: dict) -> str:
         
     return summary
 
+# --- NEW: Weather formatting helper ---
+def format_weather_phenomena(weather_list) -> str:
+    """Helper function to format weather phenomena consistently"""
+    if not weather_list:
+        return "Clear conditions"
+    
+    weather_descriptions = []
+    for weather_item in weather_list:
+        if isinstance(weather_item, dict):
+            # Use the description field from parsed weather
+            desc = weather_item.get('description', '').strip()
+            if not desc:
+                # Fallback to raw if description is empty
+                desc = weather_item.get('raw', '').strip()
+            if not desc:
+                # Last resort - try to build from phenomena
+                phenomena = weather_item.get('phenomena', [])
+                if phenomena:
+                    intensity = weather_item.get('intensity', 'moderate')
+                    phenom_names = [p.get('description', p.get('code', '')) for p in phenomena]
+                    desc = f"{intensity.title()} {', '.join(phenom_names)}"
+                else:
+                    desc = "Unknown weather condition"
+            weather_descriptions.append(desc)
+        elif isinstance(weather_item, str) and weather_item.strip():
+            weather_descriptions.append(weather_item.strip())
+        else:
+            # Skip empty or invalid entries
+            continue
+    
+    return ", ".join(weather_descriptions) if weather_descriptions else "Clear conditions"
+
 # --- NEW: Enhanced Summary Generation ---
 def generate_summary_text(analysis: dict, metar: dict) -> str:
     """Generates a multi-line, human-readable weather summary."""
     overall = analysis.get('overall', 'Unknown')
     wind = metar.get('wind', 'N/A')
     visibility = metar.get('visibility', 'N/A')
-    weather_phenomena = ", ".join(metar.get('weather', [])) or "No significant phenomena"
+    
+    # Format weather phenomena using helper function
+    weather_list = metar.get('weather', [])
+    weather_phenomena = format_weather_phenomena(weather_list)
 
     summary_lines = [
         f"Overall condition is assessed as: {overall}.",
@@ -269,27 +323,171 @@ def generate_summary_text(analysis: dict, metar: dict) -> str:
 
 # --- UNCHANGED: Existing data endpoints ---
 # (get_metar, get_pirep, etc. remain here, unchanged for brevity)
+# IATA to ICAO conversion map for backend compatibility
+IATA_TO_ICAO = {
+    # United States - Major Airports
+    'LAX': 'KLAX', 'JFK': 'KJFK', 'ORD': 'KORD', 'ATL': 'KATL',
+    'SFO': 'KSFO', 'DEN': 'KDEN', 'LAS': 'KLAS', 'BOS': 'KBOS',
+    'MIA': 'KMIA', 'SEA': 'KSEA', 'DFW': 'KDFW', 'CLT': 'KCLT',
+    'LGA': 'KLGA', 'EWR': 'KEWR', 'PHX': 'KPHX', 'IAH': 'KIAH',
+    'MSP': 'KMSP', 'DTW': 'KDTW', 'PHL': 'KPHL', 'BWI': 'KBWI',
+    'SAN': 'KSAN', 'TPA': 'KTPA', 'PDX': 'KPDX', 'STL': 'KSTL',
+    'HNL': 'PHNL', 'ANC': 'PANC', 'OAK': 'KOAK', 'MDW': 'KMDW',
+    'BUR': 'KBUR', 'SJC': 'KSJC', 'SMF': 'KSMF', 'RDU': 'KRDU',
+    'AUS': 'KAUS', 'BNA': 'KBNA', 'MCI': 'KMCI', 'CLE': 'KCLE',
+    'PIT': 'KPIT', 'IND': 'KIND', 'CVG': 'KCVG', 'CMH': 'KCMH',
+    'MKE': 'KMKE', 'BDL': 'KBDL', 'PVD': 'KPVD', 'ALB': 'KALB',
+    
+    # Canada
+    'YYZ': 'CYYZ', 'YVR': 'CYVR', 'YUL': 'CYUL', 'YYC': 'CYYC',
+    'YOW': 'CYOW', 'YWG': 'CYWG', 'YHZ': 'CYHZ', 'YEG': 'CYEG',
+    'YQB': 'CYQB', 'YXE': 'CYXE', 'YQR': 'CYQR', 'YQX': 'CYQX',
+    
+    # India - Major Airports
+    'DEL': 'VIDP', 'BOM': 'VABB', 'BLR': 'VOBL', 'MAA': 'VOMM',
+    'CCU': 'VECC', 'HYD': 'VOHS', 'AMD': 'VOCI', 'COK': 'VOSR',
+    'GOI': 'VOGO', 'PNQ': 'VAPO', 'JAI': 'VIJP', 'LKO': 'VILK',
+    'IXC': 'VOCI', 'NAG': 'VANP', 'TRV': 'VOTV', 'CJB': 'VOCB',
+    'IXB': 'VEBI', 'GAU': 'VEGT', 'IXA': 'VEAT', 'IXJ': 'VEJM',
+    'IXR': 'VERC', 'PAT': 'VEPT', 'RPR': 'VARP', 'BHO': 'VABP',
+    
+    # United Kingdom & Ireland
+    'LHR': 'EGLL', 'LGW': 'EGKK', 'STN': 'EGSS', 'LTN': 'EGGW',
+    'MAN': 'EGCC', 'EDI': 'EGPH', 'GLA': 'EGPF', 'BHX': 'EGBB',
+    'LPL': 'EGGP', 'NCL': 'EGNT', 'BRS': 'EGGD', 'CWL': 'EGFF',
+    'BEL': 'EGAA', 'DUB': 'EIDW', 'ORK': 'EICK', 'SNN': 'EINN',
+    
+    # France
+    'CDG': 'LFPG', 'ORY': 'LFPO', 'NCE': 'LFMN', 'LYS': 'LFLL',
+    'MRS': 'LFML', 'TLS': 'LFBO', 'BOD': 'LFBD', 'NTE': 'LFRS',
+    'MLH': 'LFSB', 'LIL': 'LFQQ', 'MPL': 'LFMT', 'BIQ': 'LFBZ',
+    
+    # Germany
+    'FRA': 'EDDF', 'MUC': 'EDDM', 'DUS': 'EDDL', 'TXL': 'EDDT',
+    'BER': 'EDDB', 'HAM': 'EDDH', 'CGN': 'EDDK', 'STR': 'EDDS',
+    'HAJ': 'EDDV', 'NUE': 'EDDN', 'LEJ': 'EDDP', 'FDH': 'EDAH',
+    
+    # Netherlands & Belgium
+    'AMS': 'EHAM', 'RTM': 'EHRD', 'EIN': 'EHEH', 'GRQ': 'EHGG',
+    'BRU': 'EBBR', 'ANR': 'EBAW', 'CRL': 'EBCI', 'LGG': 'EBLG',
+    
+    # Spain & Portugal
+    'MAD': 'LEMD', 'BCN': 'LEBL', 'PMI': 'LEPA', 'LPA': 'GCLP',
+    'AGP': 'LEMG', 'BIO': 'LEBB', 'SVQ': 'LEZL', 'VLC': 'LEVC',
+    'LIS': 'LPPT', 'OPO': 'LPPR', 'FAO': 'LPFR', 'FNC': 'LPMA',
+    
+    # Italy
+    'FCO': 'LIRF', 'MXP': 'LIMC', 'LIN': 'LIML', 'BGY': 'LIME',
+    'VCE': 'LIPZ', 'NAP': 'LIRN', 'CTA': 'LICC', 'BLQ': 'LIPE',
+    'FLR': 'LIRQ', 'PSA': 'LIRP', 'BRI': 'LIBD', 'CAG': 'LIEE',
+    
+    # Switzerland & Austria
+    'ZUR': 'LSZH', 'GVA': 'LSGG', 'BSL': 'LFSB', 'BRN': 'LSZB',
+    'VIE': 'LOWV', 'SZG': 'LOWS', 'INN': 'LOWI', 'GRZ': 'LOWG',
+    
+    # Scandinavia
+    'ARN': 'ESSA', 'GOT': 'ESGG', 'MMX': 'ESMS', 'CPH': 'EKCH',
+    'AAL': 'EKYT', 'BLL': 'EKBI', 'OSL': 'ENGM', 'BGO': 'ENBR',
+    'TRD': 'ENVA', 'SVG': 'ENZV', 'HEL': 'EFHK', 'TMP': 'EFTP',
+    
+    # Eastern Europe
+    'SVO': 'UUEE', 'DME': 'UUDD', 'VKO': 'UUWW', 'LED': 'ULLI',
+    'WAW': 'EPWA', 'KRK': 'EPKK', 'GDN': 'EPGD', 'WRO': 'EPWR',
+    'PRG': 'LKPR', 'BUD': 'LHBP', 'OTP': 'LROP', 'SOF': 'LBSF',
+    
+    # Asia-Pacific - Japan
+    'NRT': 'RJAA', 'HND': 'RJTT', 'KIX': 'RJBB', 'ITM': 'RJOO',
+    'CTS': 'RJCC', 'FUK': 'RJFF', 'SDJ': 'RJSN', 'KMJ': 'RJOK',
+    'OKA': 'ROAH', 'NGO': 'RJGG', 'HIJ': 'RJOA', 'TAK': 'RJFK',
+    
+    # South Korea
+    'ICN': 'RKSI', 'GMP': 'RKSS', 'PUS': 'RKPK', 'CJU': 'RKPC',
+    'TAE': 'RKTN', 'KWJ': 'RKJK', 'USN': 'RKPU', 'YNY': 'RKNY',
+    
+    # China
+    'PEK': 'ZBAA', 'PKX': 'ZBAD', 'PVG': 'ZSPD', 'SHA': 'ZSSS',
+    'CAN': 'ZGGG', 'SZX': 'ZGSZ', 'CTU': 'ZUUU', 'KMG': 'ZPPP',
+    'XIY': 'ZLXY', 'CGO': 'ZHCC', 'WUH': 'ZHHH', 'CSX': 'ZSCX',
+    'HGH': 'ZSHC', 'NKG': 'ZSNJ', 'TSN': 'ZBTJ', 'DLC': 'ZYTL',
+    
+    # Southeast Asia
+    'HKG': 'VHHH', 'SIN': 'WSSS', 'KUL': 'WMKK', 'CGK': 'WIII',
+    'BKK': 'VTBS', 'DMK': 'VTBD', 'MNL': 'RPLL', 'CEB': 'RPVM',
+    'SGN': 'VVTS', 'HAN': 'VVNB', 'DAD': 'VVDN', 'RGN': 'VYYY',
+    'PNH': 'VDPP', 'VTE': 'VLVT', 'BWN': 'WBSB', 'DPS': 'WADD',
+    
+    # Australia & New Zealand
+    'SYD': 'YSSY', 'MEL': 'YMML', 'BNE': 'YBBN', 'PER': 'YPPH',
+    'ADL': 'YPAD', 'DRW': 'YPDN', 'CNS': 'YBCS', 'HBA': 'YMHB',
+    'CBR': 'YSCB', 'OOL': 'YBCG', 'AKL': 'NZAA', 'WLG': 'NZWN',
+    'CHC': 'NZCH', 'ZQN': 'NZQN', 'DUD': 'NZDN', 'PMR': 'NZPM',
+    
+    # Middle East
+    'DXB': 'OMDB', 'AUH': 'OMAA', 'DOH': 'OTHH', 'DWC': 'OMDW',
+    'SHJ': 'OMSJ', 'RAS': 'OMRK', 'KWI': 'OKBK', 'RUH': 'OERK',
+    'JED': 'OEJN', 'DMM': 'OEDF', 'MED': 'OEMA', 'TIF': 'OETF',
+    'BAH': 'OBBI', 'MCT': 'OOMS', 'SLL': 'OOSA', 'TLV': 'LLBG',
+    'VDA': 'LLOV', 'ETH': 'OIEL', 'AMM': 'OJAI', 'AQJ': 'OJAQ',
+    'BEY': 'OLBA', 'DAM': 'OSDI', 'ALP': 'OSAP', 'BGW': 'ORBI',
+    'BSR': 'ORMM', 'EBL': 'OREB', 'IKA': 'OIIE', 'THR': 'OIII',
+    
+    # Africa
+    'CAI': 'HECA', 'SSH': 'HESH', 'HRG': 'HEGN', 'LXR': 'HELX',
+    'CMN': 'GMMN', 'RAK': 'GMMX', 'FEZ': 'GMFF',
+    'CPT': 'FACT', 'JNB': 'FAJS', 'DUR': 'FALE', 'PLZ': 'FAPE',
+    'LOS': 'DNMM', 'ABV': 'DNAA', 'KAN': 'DNKN', 'PHC': 'DNPO',
+    'ACC': 'DGAA', 'KMS': 'DGSI', 'ABJ': 'DIAP', 'NBO': 'HKJK',
+    'MBA': 'HKMO', 'EBB': 'HUEN', 'KGL': 'HRYR', 'DAR': 'HTDA',
+    'ZNZ': 'HTZA', 'ADD': 'HAAB', 'BJM': 'HADR', 'ASM': 'HEAS',
+    
+    # South America
+    'GRU': 'SBGR', 'CGH': 'SBSP', 'SDU': 'SBRJ', 'GIG': 'SBGL',
+    'BSB': 'SBBR', 'CNF': 'SBCF', 'FOR': 'SBFZ', 'REC': 'SBRF',
+    'SSA': 'SBSV', 'CWB': 'SBCT', 'POA': 'SBPA', 'MAO': 'SBEG',
+    'VCP': 'SBKP', 'EZE': 'SAEZ', 'AEP': 'SABE',
+    'COR': 'SACO', 'MDZ': 'SAME', 'SCL': 'SCEL', 'BOG': 'SKBO',
+    'MDE': 'SKRG', 'CTG': 'SKCG', 'CLO': 'SKCL', 'LIM': 'SPJC',
+    'CUZ': 'SPZO', 'AQP': 'SPQU', 'UIO': 'SEQM', 'GYE': 'SEGU',
+    'CCS': 'SVMI', 'MAR': 'SVMC', 'VLN': 'SVVL', 'GEO': 'SYCJ'
+}
+
+def validate_airport_code(code: str) -> str:
+    """Validate and convert airport code (accepts both IATA and ICAO)"""
+    if not code:
+        raise HTTPException(status_code=400, detail="Airport code cannot be empty")
+    
+    code = code.strip().upper()
+    
+    # Check if code contains only letters
+    if not code.isalpha():
+        raise HTTPException(status_code=400, detail="Airport code must contain only letters")
+    
+    # Handle IATA codes (3 letters) - convert to ICAO
+    if len(code) == 3:
+        if code in IATA_TO_ICAO:
+            icao_code = IATA_TO_ICAO[code]
+            print(f"🔄 Converted IATA {code} to ICAO {icao_code}")
+            return icao_code
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown IATA code: {code}. Please use a supported airport.")
+    
+    # Handle ICAO codes (4 letters)
+    elif len(code) == 4:
+        return code
+    
+    # Invalid length
+    else:
+        raise HTTPException(status_code=400, detail="Airport code must be 3 letters (IATA) or 4 letters (ICAO)")
+
+# Keep old function for backward compatibility
 def validate_icao_code(icao: str) -> str:
-    """Validate ICAO airport code format"""
-    if not icao:
-        raise HTTPException(status_code=400, detail="ICAO code cannot be empty")
-    
-    icao = icao.strip().upper()
-    
-    # ICAO codes should be exactly 4 letters
-    if len(icao) != 4:
-        raise HTTPException(status_code=400, detail="ICAO code must be exactly 4 characters")
-    
-    # ICAO codes should only contain letters
-    if not icao.isalpha():
-        raise HTTPException(status_code=400, detail="ICAO code must contain only letters")
-    
-    return icao
+    """Legacy function - use validate_airport_code instead"""
+    return validate_airport_code(icao)
 
 @app.get("/metar/decoded/{icao}")
 def get_metar_decoded(icao: str) -> Dict[str, Any]:
-    # Validate ICAO code first
-    icao = validate_icao_code(icao)
+    # Validate airport code (accepts IATA or ICAO)
+    icao = validate_airport_code(icao)
     
     try:
         url = f"https://tgftp.nws.noaa.gov/data/observations/metar/stations/{icao}.TXT"
@@ -307,6 +505,15 @@ def get_metar_decoded(icao: str) -> Dict[str, Any]:
         raw_metar = lines[1]
         obs = Metar.Metar(raw_metar)
         
+        # Use custom METAR parser for weather phenomena
+        try:
+            custom_parser = MetarParser()
+            parsed_data = custom_parser.parse_metar(raw_metar)
+        except Exception as parser_error:
+            print(f"Warning: Custom METAR parser failed: {parser_error}")
+            # Fallback to basic parsing if custom parser fails
+            parsed_data = {'weather': []}
+        
         return {
             "station_id": obs.station_id, 
             "time": str(obs.time), 
@@ -315,7 +522,7 @@ def get_metar_decoded(icao: str) -> Dict[str, Any]:
             "wind": str(obs.wind()), 
             "visibility": str(obs.vis), 
             "pressure": str(obs.press), 
-            "weather": [str(w) for w in obs.weather], 
+            "weather": parsed_data.get('weather', []),  # Use our structured weather data
             "sky": [str(layer) for layer in obs.sky], 
             "raw": raw_metar
         }
@@ -347,11 +554,17 @@ def get_route_weather(departure_icao: str, arrival_icao: str):
     Provides a full weather briefing for a flight route, including detailed summaries and coordinates.
     """
     try:
-        # Validate both ICAO codes
-        dep_icao = validate_icao_code(departure_icao)
-        arr_icao = validate_icao_code(arrival_icao)
+        print(f"🛫 Route weather request: {departure_icao} → {arrival_icao}")
         
+        # Validate both airport codes (accepts IATA or ICAO)
+        print(f"🔍 Validating airport codes...")
+        dep_icao = validate_airport_code(departure_icao)
+        arr_icao = validate_airport_code(arrival_icao)
+        print(f"✅ Validated: {departure_icao} → {dep_icao}, {arrival_icao} → {arr_icao}")
+        
+        print(f"📊 Getting departure weather for {dep_icao}...")
         departure_weather = get_metar_analyzed(dep_icao)
+        print(f"📊 Getting arrival weather for {arr_icao}...")
         arrival_weather = get_metar_analyzed(arr_icao)
 
         dep_summary = generate_summary_text(departure_weather['analysis'], departure_weather['decoded_metar'])
@@ -376,7 +589,10 @@ def get_route_weather(departure_icao: str, arrival_icao: str):
     except HTTPException as e:
         raise e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+        print(f"❌ Route weather error: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Route weather error: {str(e)}")
 
 @app.get("/route-weather")
 def get_route_weather_query(departure: str, arrival: str):
