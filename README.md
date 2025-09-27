@@ -32,6 +32,15 @@ A comprehensive aviation weather intelligence platform that simplifies flight pl
 - **Airport Search** - Intelligent airport code lookup
 - **Responsive Design** - Works on desktop and mobile devices
 
+
+## Gallery
+<img width="1919" height="945" alt="1" src="https://github.com/user-attachments/assets/5fe89802-832d-4d94-a0af-d23633a738c8" />
+<img width="1919" height="945" alt="2" src="https://github.com/user-attachments/assets/9c420b73-3cb1-4599-a401-a611dca60e2d" />
+<img width="841" height="621" alt="3" src="https://github.com/user-attachments/assets/053366f7-a3bf-4938-8617-5a2ab5938949" />
+<img width="868" height="748" alt="4" src="https://github.com/user-attachments/assets/1b07661e-39a2-47ab-9284-a734ad3b696b" />
+<img width="902" height="348" alt="5" src="https://github.com/user-attachments/assets/5ef3d744-905c-4938-a08c-8cab2071c3b2" />
+<img width="564" height="765" alt="6" src="https://github.com/user-attachments/assets/e67b1334-6387-433d-aa1f-4dde29d5dd0e" />
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -194,7 +203,7 @@ python -m pytest test_api.py::TestAerolyticsAPI::test_metar_decoded_valid_icao -
 ### Frontend  
 - **React 18.2+** - Modern UI library
 - **Axios** - HTTP client for API calls
-- **Leaflet & React-Leaflet** - Interactive mapping
+- **Google Maps API** - Interactive mapping
 - **CSS3** - Responsive styling
 
 ### Data Sources
@@ -245,37 +254,6 @@ Aerolytics uses a sophisticated 3-tier risk assessment:
   - Wind > 25 knots
   - Visibility < 3 miles
   - Thunderstorms, severe weather
-
-## 🚦 Development Roadmap
-
-### Phase 1: Core Infrastructure ✅
-- [x] FastAPI backend setup
-- [x] React frontend foundation
-- [x] METAR data integration
-- [x] Basic parsing and display
-
-### Phase 2: Enhanced Analysis ✅  
-- [x] Weather risk classification
-- [x] Route weather analysis
-- [x] SIGMET integration
-- [x] Airport coordinate system
-
-### Phase 3: AI Integration ✅
-- [x] Gemini AI chat assistant
-- [x] Natural language weather queries
-- [x] Context-aware responses
-
-### Phase 4: Advanced Features 🔄
-- [ ] Historical weather trends
-- [ ] Flight planning optimization
-- [ ] Weather radar integration
-- [ ] Mobile application
-
-### Phase 5: Production Ready 📋
-- [ ] User authentication
-- [ ] Database integration
-- [ ] Performance optimization
-- [ ] Cloud deployment
 
 ## 🤝 Contributing
 
