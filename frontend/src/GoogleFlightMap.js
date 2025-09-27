@@ -26,8 +26,16 @@ const GoogleFlightMap = ({ departure, arrival, onMapReady }) => {
       return;
     }
 
+    // Check if API key is available
+    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY') {
+      console.error('Google Maps API key is missing or not configured. Please add REACT_APP_GOOGLE_MAPS_API_KEY to your .env file');
+      setMapLoaded(false);
+      return;
+    }
+
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&libraries=geometry`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`;
     script.async = true;
     script.defer = true;
     
@@ -36,7 +44,7 @@ const GoogleFlightMap = ({ departure, arrival, onMapReady }) => {
     };
     
     script.onerror = () => {
-      console.error('Failed to load Google Maps API');
+      console.error('Failed to load Google Maps API - check your API key and billing settings');
     };
 
     document.head.appendChild(script);
@@ -246,10 +254,24 @@ const GoogleFlightMap = ({ departure, arrival, onMapReady }) => {
           borderRadius: '8px',
           textAlign: 'center'
         }}>
-          <div>Loading Google Maps...</div>
-          <div style={{ fontSize: '12px', marginTop: '8px', opacity: 0.8 }}>
-            Initializing flight route visualization
-          </div>
+          {!process.env.REACT_APP_GOOGLE_MAPS_API_KEY || process.env.REACT_APP_GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY' ? (
+            <>
+              <div style={{ color: '#ff6b6b' }}>⚠️ Google Maps API Key Required</div>
+              <div style={{ fontSize: '12px', marginTop: '8px', opacity: 0.8 }}>
+                Please add your API key to the .env file
+              </div>
+              <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.6 }}>
+                REACT_APP_GOOGLE_MAPS_API_KEY=your_key_here
+              </div>
+            </>
+          ) : (
+            <>
+              <div>Loading Google Maps...</div>
+              <div style={{ fontSize: '12px', marginTop: '8px', opacity: 0.8 }}>
+                Initializing flight route visualization
+              </div>
+            </>
+          )}
         </div>
       )}
 
