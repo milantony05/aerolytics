@@ -371,8 +371,16 @@ Arrival Conditions: ${arrData.analysis.overall}`;
                     <div><strong>Temperature:</strong> {modalData.temperature}</div>
                     <div><strong>Dew Point:</strong> {modalData.dew_point}</div>
                     <div><strong>Pressure:</strong> {modalData.pressure}</div>
-                    <div><strong>Weather:</strong> {modalData.weather?.join(', ') || 'None'}</div>
-                    <div><strong>Sky:</strong> {modalData.sky?.join(', ') || 'Clear'}</div>
+                    <div><strong>Weather:</strong> {
+                      typeof modalData.weather === 'string' 
+                        ? modalData.weather 
+                        : modalData.weather?.join(', ') || 'Clear conditions'
+                    }</div>
+                    <div><strong>Sky:</strong> {
+                      typeof modalData.sky === 'string' 
+                        ? modalData.sky 
+                        : modalData.sky?.join(', ') || 'Clear'
+                    }</div>
                   </div>
                   <div className="raw-metar">
                     <h5>Raw METAR:</h5>

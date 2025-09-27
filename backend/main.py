@@ -189,8 +189,8 @@ def analyze_station(metar: dict, sigmets: list) -> dict:
     wind = parse_wind(metar.get("wind", ""))
     vis = parse_visibility(metar.get("visibility", ""))
     
-    # Handle both old string format and new structured weather format
-    weather_list = metar.get("weather", [])
+    # Use structured weather data for analysis, fallback to formatted weather
+    weather_list = metar.get("weather_raw", metar.get("weather", []))
     weather = []
     for w in weather_list:
         if isinstance(w, dict):
@@ -243,16 +243,15 @@ def generate_summary_text(analysis: dict, metar: dict) -> str:
     temp = metar.get("temperature", "Unknown")
     wind = metar.get("wind", "Unknown")
     vis = metar.get("visibility", "Unknown")
-    weather = metar.get("weather", [])
+    # Use formatted weather for display, but get raw data for re-formatting if needed
+    weather_formatted = metar.get("weather", "Clear conditions")
+    weather_raw = metar.get("weather_raw", [])
     
     summary = f"Weather Report for {station} at {time}\n"
     summary += f"Temperature: {temp}\n"
     summary += f"Wind: {wind}\n" 
     summary += f"Visibility: {vis}\n"
-    
-    if weather:
-        weather_text = format_weather_phenomena(weather)
-        summary += f"Weather: {weather_text}\n"
+    summary += f"Weather: {weather_formatted}\n"
     
     if analysis.get("hazards"):
         summary += f"\nHAZARDS: {'; '.join(analysis['hazards'])}\n"
@@ -307,7 +306,7 @@ def generate_summary_text(analysis: dict, metar: dict) -> str:
     visibility = metar.get('visibility', 'N/A')
     
     # Format weather phenomena using helper function
-    weather_list = metar.get('weather', [])
+    weather_list = metar.get('weather_raw', metar.get('weather', []))
     weather_phenomena = format_weather_phenomena(weather_list)
 
     summary_lines = [
@@ -514,6 +513,24 @@ def get_metar_decoded(icao: str) -> Dict[str, Any]:
             # Fallback to basic parsing if custom parser fails
             parsed_data = {'weather': []}
         
+        # Format weather for display
+        weather_formatted = format_weather_phenomena(parsed_data.get('weather', []))
+        
+        # Format sky conditions for display
+        sky_formatted = []
+        for layer in obs.sky:
+            if hasattr(layer, '__iter__') and len(layer) >= 2:
+                cloud_type = str(layer[0]) if layer[0] else 'Unknown'
+                height = str(layer[1]) if layer[1] else 'Unknown height'
+                cloud_subtype = str(layer[2]) if len(layer) > 2 and layer[2] else ''
+                
+                sky_desc = f"{cloud_type} at {height}"
+                if cloud_subtype:
+                    sky_desc += f" ({cloud_subtype})"
+                sky_formatted.append(sky_desc)
+            else:
+                sky_formatted.append(str(layer))
+        
         return {
             "station_id": obs.station_id, 
             "time": str(obs.time), 
@@ -522,8 +539,9 @@ def get_metar_decoded(icao: str) -> Dict[str, Any]:
             "wind": str(obs.wind()), 
             "visibility": str(obs.vis), 
             "pressure": str(obs.press), 
-            "weather": parsed_data.get('weather', []),  # Use our structured weather data
-            "sky": [str(layer) for layer in obs.sky], 
+            "weather": weather_formatted,  # Human-readable weather
+            "weather_raw": parsed_data.get('weather', []),  # Keep structured data for analysis
+            "sky": sky_formatted,  # Human-readable sky conditions
             "raw": raw_metar
         }
         
