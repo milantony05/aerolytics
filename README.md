@@ -34,18 +34,15 @@ A comprehensive aviation weather intelligence platform that simplifies flight pl
 
 
 ## 📸 Gallery
+<img width="1919" height="945" alt="1" src="https://github.com/user-attachments/assets/95ffe88f-b870-41d8-9f15-e12eee8eae65" />
 
-<img width="800" alt="Aerolytics Dashboard - Main Interface" src="https://github.com/user-attachments/assets/5fe89802-832d-4d94-a0af-d23633a738c8" />
+<img width="1919" height="945" alt="2" src="https://github.com/user-attachments/assets/0afb1ef1-a336-4168-b648-c39f420bb5a3" />
 
-<img width="800" alt="Weather Analysis and Route Planning" src="https://github.com/user-attachments/assets/9c420b73-3cb1-4599-a401-a611dca60e2d" />
+<img width="841" height="621" alt="3" src="https://github.com/user-attachments/assets/8de60dd1-eede-4851-ac76-b0bcdd398735" />
 
-<img width="400" alt="Airport Search Interface" src="https://github.com/user-attachments/assets/053366f7-a3bf-4938-8617-5a2ab5938949" />
+<img width="868" height="748" alt="4" src="https://github.com/user-attachments/assets/14715286-95f5-4064-b643-58806f613307" />
 
-<img width="400" alt="Weather Categorization System" src="https://github.com/user-attachments/assets/1b07661e-39a2-47ab-9284-a734ad3b696b" />
-
-<img width="400" alt="METAR Data Display" src="https://github.com/user-attachments/assets/5ef3d744-905c-4938-a08c-8cab2071c3b2" />
-
-<img width="300" alt="Mobile Responsive Design" src="https://github.com/user-attachments/assets/e67b1334-6387-433d-aa1f-4dde29d5dd0e" />
+<img width="902" height="348" alt="5" src="https://github.com/user-attachments/assets/8d203936-8039-4708-b995-c9c5a42b7f83" />
 
 ## 🚀 Quick Start
 
