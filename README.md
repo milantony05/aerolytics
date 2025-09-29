@@ -1,4 +1,4 @@
-# 🛩️ Aerolytics: The Pilot's Weather Co-Pilot
+# Aerolytics: The Weather Co-Pilot
 
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
@@ -32,8 +32,8 @@ A comprehensive aviation weather intelligence platform that simplifies flight pl
 - **Airport Search** - Intelligent airport code lookup
 - **Responsive Design** - Works on desktop and mobile devices
 
-
 ## 📸 Gallery
+
 <img width="1919" height="945" alt="1" src="https://github.com/user-attachments/assets/95ffe88f-b870-41d8-9f15-e12eee8eae65" />
 
 <img width="1919" height="945" alt="2" src="https://github.com/user-attachments/assets/0afb1ef1-a336-4168-b648-c39f420bb5a3" />
@@ -151,25 +151,6 @@ aerolytics/
 | `POST` | `/api/gemini/chat` | Chat with AI weather assistant |
 | `GET` | `/api/gemini/health` | AI service health check |
 
-### Example API Usage
-
-**Get Current Weather:**
-```bash
-curl http://localhost:8000/metar/decoded/KLAX
-```
-
-**Get Route Weather:**
-```bash
-curl http://localhost:8000/route-weather/KLAX/KJFK
-```
-
-**Chat with AI Assistant:**
-```bash
-curl -X POST http://localhost:8000/api/gemini/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "What's the weather like at LAX?"}'
-```
-
 ## 🧪 Testing
 
 The project includes comprehensive test coverage for all API endpoints:
@@ -214,24 +195,26 @@ python -m pytest test_api.py::TestAerolyticsAPI::test_metar_decoded_valid_icao -
 - **NOAA Aviation Weather** - METAR observations
 - **Google Gemini AI** - Natural language processing
 
-## 🌐 Supported Airports
-
-The system includes a comprehensive database of major airports worldwide:
-
-**United States:** LAX, JFK, ORD, ATL, SFO, DEN, LAS, BOS, MIA, SEA  
-**India:** DEL, BOM, BLR, MAA, CCU, HYD, AMD  
-**Europe:** LHR, CDG, FRA, AMS, MAD, FCO  
-**Asia-Pacific:** NRT, ICN, HKG, SIN, SYD  
-**Middle East:** DXB, DOH, RUH  
-**And many more...**
-
 ## 🔧 Configuration
 
 ### Environment Variables
 Create a `.env` file in the backend directory:
 ```env
-GEMINI_API_KEY=your_google_ai_api_key_here
-CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+# Environment Configuration for Aerolytics
+
+# Google Maps API Key
+REACT_APP_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY
+
+# Local Backend API
+REACT_APP_BACKEND_URL=http://localhost:8000
+
+# Amadeus API Configuration
+REACT_APP_AMADEUS_API_BASE=https://test.api.amadeus.com
+REACT_APP_AMADEUS_API_KEY=YOUR_AMADEUS_API_KEY
+REACT_APP_AMADEUS_API_SECRET=YOUR_AMADEUS_API_SECRET
+
+# Gemini AI API Configuration
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
 ```
 
 ### API Configuration
@@ -291,15 +274,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Google AI** for Gemini integration
 - **FastAPI community** for excellent documentation and support
 - **React community** for modern frontend capabilities
-
-## 📞 Support
-
-If you encounter any issues or have questions:
-
-1. **Check the documentation** in this README
-2. **Review API docs** at http://localhost:8000/docs
-3. **Run tests** to verify installation: `python test_api.py`
-4. **Open an issue** on GitHub for bugs or feature requests
 
 ---
 
