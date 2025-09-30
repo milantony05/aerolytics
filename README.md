@@ -1,4 +1,4 @@
-# Aerolytics: The Weather Co-Pilot
+# Aerolytics: The Weather Co-Pilot 🛩️
 
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
