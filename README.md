@@ -36,14 +36,6 @@ A comprehensive aviation weather intelligence platform that simplifies flight pl
 
 <img width="1919" height="945" alt="1" src="https://github.com/user-attachments/assets/95ffe88f-b870-41d8-9f15-e12eee8eae65" />
 
-<img width="1919" height="945" alt="2" src="https://github.com/user-attachments/assets/0afb1ef1-a336-4168-b648-c39f420bb5a3" />
-
-<img width="841" height="621" alt="3" src="https://github.com/user-attachments/assets/8de60dd1-eede-4851-ac76-b0bcdd398735" />
-
-<img width="868" height="748" alt="4" src="https://github.com/user-attachments/assets/14715286-95f5-4064-b643-58806f613307" />
-
-<img width="902" height="348" alt="5" src="https://github.com/user-attachments/assets/8d203936-8039-4708-b995-c9c5a42b7f83" />
-
 ## 🚀 Quick Start
 
 ```bash
