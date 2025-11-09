@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 import requests
-import httpx
 from typing import List, Any, Dict
 from fastapi.middleware.cors import CORSMiddleware
 from metar import Metar

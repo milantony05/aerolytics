@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import './FlightChatbot.css';
+import './Chatbot.css';
 
-const FlightChatbot = () => {
+const Chatbot = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isReceiving, setIsReceiving] = useState(false);
@@ -152,4 +152,4 @@ const FlightChatbot = () => {
   );
 };
 
-export default FlightChatbot;
+export default Chatbot;

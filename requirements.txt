@@ -1,21 +1,8 @@
-# Core Dependencies (install these first)
-setuptools>=65.0
-wheel>=0.37.0
-
 # Backend Dependencies
 fastapi>=0.100.0
 uvicorn>=0.23.0
 requests>=2.31.0
-httpx>=0.24.0
 python-metar>=1.4.0
 numpy>=1.20.0
 google-generativeai>=0.3.0
-
-# Legacy Flask Dependencies (for backward compatibility)
-flask>=2.3.0
-flask-cors>=4.0.0
-
-# Development Dependencies
-pytest>=7.0.0
-pytest-asyncio>=0.21.0
-httpx>=0.24.0
+python-dotenv>=1.0.0

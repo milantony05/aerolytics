@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import './App.css';
-import AirportSearchInput from './AirportSearchInput';
-import FlightChatbot from './FlightChatbot';
-import GoogleFlightMap from './GoogleFlightMap';
+import SearchInput from './SearchInput';
+import Chatbot from './Chatbot';
+import Map from './Map';
 
 const WeatherBar = ({ level }) => {
   const getColor = () => {
@@ -158,15 +158,15 @@ Arrival Conditions: ${arrData.analysis.overall}`;
         {!panelCollapsed && (
         <div className="weather-panel">
           <div className="search-section">
-            <AirportSearchInput
-              value={departureIcao}
-              onChange={setDepartureIcao}
+            <SearchInput
+              initialValue={departureIcao}
+              onAirportSelect={setDepartureIcao}
               placeholder="Departure airport..."
               label="From"
             />
-            <AirportSearchInput
-              value={arrivalIcao}
-              onChange={setArrivalIcao}
+            <SearchInput
+              initialValue={arrivalIcao}
+              onAirportSelect={setArrivalIcao}
               placeholder="Arrival airport..."
               label="To"
             />
@@ -320,7 +320,7 @@ Arrival Conditions: ${arrData.analysis.overall}`;
         )}
 
         <div className="map-section">
-          <GoogleFlightMap
+          <Map
             departure={departureIcao}
             arrival={arrivalIcao}
             weatherData={data}
@@ -347,7 +347,7 @@ Arrival Conditions: ${arrData.analysis.overall}`;
               </svg>
             </button>
           </div>
-          <FlightChatbot />
+          <Chatbot />
         </div>
       )}
       

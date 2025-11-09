@@ -3,6 +3,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import logging
+import os
+from pathlib import Path
+
+# Load .env file from parent directory
+from dotenv import load_dotenv
+env_path = Path(__file__).parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -11,8 +18,11 @@ logger = logging.getLogger(__name__)
 # Router for Gemini chat endpoints
 router = APIRouter()
 
-# Configure Gemini API
-API_KEY = 'AIzaSyBRxFkLNWje4AVHdRQ_K0o2zBXZcdjZjJ0'
+# Configure Gemini API - read from environment variable
+API_KEY = os.getenv('GEMINI_API_KEY')
+if not API_KEY:
+    logger.error("GEMINI_API_KEY not found in environment variables")
+    raise ValueError("GEMINI_API_KEY environment variable is required")
 genai.configure(api_key=API_KEY)
 
 # Initialize the model with the correct model name for Generative Language API
